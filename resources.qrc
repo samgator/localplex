@@ -2,6 +2,7 @@
 <RCC version="1.0">
     <qresource prefix="/">
         <file>src/qml/Main.qml</file>
+        <file>src/qml/FixupView.qml</file>
         <file>assets/fonts/Inter-Variable.ttf</file>
         <file>assets/icons/play.svg</file>
         <file>assets/icons/pause.svg</file>
@@ -16,5 +17,6 @@
         <file>assets/icons/arrow-left.svg</file>
         <file>assets/icons/plus.svg</file>
         <file>assets/icons/filter.svg</file>
+        <file>assets/icons/edit.svg</file>
     </qresource>
 </RCC>

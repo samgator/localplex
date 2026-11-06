@@ -4,6 +4,7 @@
 #include "database/playback_database.h"
 #include "database/library_database.h"
 #include "scanner/library_scanner.h"
+#include "scanner/folder_watcher.h"
 #include "models/library_model.h"
 #include "core/keybind_manager.h"
 
@@ -53,6 +54,7 @@ int main(int argc, char *argv[]) {
     qmlRegisterSingletonInstance("localplex.database", 1, 0, "PlaybackDatabase", &localplex::database::PlaybackDatabase::instance());
     qmlRegisterSingletonInstance("localplex.database", 1, 0, "LibraryDatabase", &localplex::database::LibraryDatabase::instance());
     qmlRegisterSingletonInstance("localplex.scanner", 1, 0, "LibraryScanner", &localplex::scanner::LibraryScanner::instance());
+    qmlRegisterSingletonInstance("localplex.scanner", 1, 0, "FolderWatcher", &localplex::scanner::FolderWatcher::instance());
     qmlRegisterSingletonInstance("localplex.core", 1, 0, "KeybindManager", &localplex::core::KeybindManager::instance());
 
     // Command-line options
@@ -79,6 +81,7 @@ int main(int argc, char *argv[]) {
     engine.rootContext()->setContextProperty(QStringLiteral("playbackDatabase"), &localplex::database::PlaybackDatabase::instance());
     engine.rootContext()->setContextProperty(QStringLiteral("libraryDatabase"), &localplex::database::LibraryDatabase::instance());
     engine.rootContext()->setContextProperty(QStringLiteral("libraryScanner"), &localplex::scanner::LibraryScanner::instance());
+    engine.rootContext()->setContextProperty(QStringLiteral("folderWatcher"), &localplex::scanner::FolderWatcher::instance());
     engine.rootContext()->setContextProperty(QStringLiteral("keybindManager"), &localplex::core::KeybindManager::instance());
 
     // Check if an initial media file argument was passed
@@ -111,6 +114,22 @@ int main(int argc, char *argv[]) {
     }, Qt::QueuedConnection);
 
     engine.load(url);
+
+    if (parser.isSet(benchOption)) {
+        QObject *rootObject = engine.rootObjects().value(0);
+        auto *window = qobject_cast<QQuickWindow *>(rootObject);
+        if (window) {
+            QObject::connect(window, &QQuickWindow::frameSwapped, []() {
+                std::quick_exit(0);
+            });
+        } else {
+            std::quick_exit(0);
+        }
+    } else {
+        QTimer::singleShot(50, []() {
+            localplex::scanner::FolderWatcher::instance().startWatching();
+        });
+    }
 
     if (isPlaybackBench && !initialFilePath.isEmpty()) {
         localplex::database::PlaybackDatabase::instance().clearProgress(initialFilePath);

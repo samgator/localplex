@@ -173,7 +173,6 @@ bool LibraryDatabase::removeFolder(const QString &path) {
     sqlite3_finalize(stmt);
 
     if (rc == SQLITE_DONE) {
-        // Also remove items located in that folder
         const char *itemSql = "DELETE FROM media_items WHERE file_path LIKE ?1 || '/%';";
         sqlite3_stmt *itemStmt = nullptr;
         if (sqlite3_prepare_v2(m_db, itemSql, -1, &itemStmt, nullptr) == SQLITE_OK) {
@@ -207,6 +206,10 @@ QStringList LibraryDatabase::getFolders() {
 
     sqlite3_finalize(stmt);
     return folders;
+}
+
+bool LibraryDatabase::isDirectory(const QString &path) const {
+    return QFileInfo(path).isDir();
 }
 
 bool LibraryDatabase::upsertItem(const MediaItemRecord &item) {
@@ -270,7 +273,6 @@ bool LibraryDatabase::removeMissingItems(const QString &folderRoot, const QStrin
         return false;
     }
 
-    // Build temporary set check or delete items starting with folderRoot not in validPaths
     const char *sql = "SELECT id, file_path FROM media_items WHERE file_path LIKE ?1 || '/%';";
     sqlite3_stmt *stmt = nullptr;
     if (sqlite3_prepare_v2(m_db, sql, -1, &stmt, nullptr) != SQLITE_OK) {
@@ -322,6 +324,162 @@ int LibraryDatabase::getItemCount() {
         sqlite3_finalize(stmt);
     }
     return count;
+}
+
+bool LibraryDatabase::assignShowAndSeason(const QStringList &filePaths, const QString &showTitle,
+                                         int seasonNumber, int startEpisodeNumber) {
+    if (!m_db || filePaths.isEmpty() || showTitle.isEmpty()) {
+        return false;
+    }
+
+    sqlite3_exec(m_db, "BEGIN TRANSACTION;", nullptr, nullptr, nullptr);
+    const char *sql = R"(
+        UPDATE media_items SET
+            media_type = 'episode',
+            show_title = ?1,
+            season_number = ?2,
+            episode_number = ?3
+        WHERE file_path = ?4;
+    )";
+
+    sqlite3_stmt *stmt = nullptr;
+    if (sqlite3_prepare_v2(m_db, sql, -1, &stmt, nullptr) != SQLITE_OK) {
+        sqlite3_exec(m_db, "ROLLBACK;", nullptr, nullptr, nullptr);
+        return false;
+    }
+
+    QByteArray showUtf8 = showTitle.toUtf8();
+    for (int i = 0; i < filePaths.size(); ++i) {
+        const QString &path = filePaths.at(i);
+        QByteArray pathUtf8 = path.toUtf8();
+        int epNum = startEpisodeNumber + i;
+
+        sqlite3_bind_text(stmt, 1, showUtf8.constData(), -1, SQLITE_TRANSIENT);
+        sqlite3_bind_int(stmt, 2, seasonNumber);
+        sqlite3_bind_int(stmt, 3, epNum);
+        sqlite3_bind_text(stmt, 4, pathUtf8.constData(), -1, SQLITE_TRANSIENT);
+
+        sqlite3_step(stmt);
+        sqlite3_reset(stmt);
+    }
+
+    sqlite3_finalize(stmt);
+    sqlite3_exec(m_db, "COMMIT;", nullptr, nullptr, nullptr);
+
+    emit libraryUpdated();
+    return true;
+}
+
+bool LibraryDatabase::assignMovie(const QString &filePath, const QString &movieTitle, int year) {
+    if (!m_db || filePath.isEmpty() || movieTitle.isEmpty()) {
+        return false;
+    }
+
+    const char *sql = R"(
+        UPDATE media_items SET
+            media_type = 'movie',
+            show_title = '',
+            item_title = ?1,
+            season_number = 0,
+            episode_number = 0,
+            year = ?2
+        WHERE file_path = ?3;
+    )";
+
+    sqlite3_stmt *stmt = nullptr;
+    if (sqlite3_prepare_v2(m_db, sql, -1, &stmt, nullptr) != SQLITE_OK) {
+        return false;
+    }
+
+    QByteArray titleUtf8 = movieTitle.toUtf8();
+    QByteArray pathUtf8 = filePath.toUtf8();
+
+    sqlite3_bind_text(stmt, 1, titleUtf8.constData(), -1, SQLITE_TRANSIENT);
+    sqlite3_bind_int(stmt, 2, year);
+    sqlite3_bind_text(stmt, 3, pathUtf8.constData(), -1, SQLITE_TRANSIENT);
+
+    int rc = sqlite3_step(stmt);
+    sqlite3_finalize(stmt);
+
+    if (rc == SQLITE_DONE) {
+        emit libraryUpdated();
+        return true;
+    }
+    return false;
+}
+
+bool LibraryDatabase::mergeShows(const QString &sourceShowTitle, const QString &targetShowTitle) {
+    if (!m_db || sourceShowTitle.isEmpty() || targetShowTitle.isEmpty()) {
+        return false;
+    }
+
+    const char *sql = "UPDATE media_items SET show_title = ?1 WHERE show_title = ?2;";
+    sqlite3_stmt *stmt = nullptr;
+    if (sqlite3_prepare_v2(m_db, sql, -1, &stmt, nullptr) != SQLITE_OK) {
+        return false;
+    }
+
+    QByteArray targetUtf8 = targetShowTitle.toUtf8();
+    QByteArray sourceUtf8 = sourceShowTitle.toUtf8();
+
+    sqlite3_bind_text(stmt, 1, targetUtf8.constData(), -1, SQLITE_TRANSIENT);
+    sqlite3_bind_text(stmt, 2, sourceUtf8.constData(), -1, SQLITE_TRANSIENT);
+
+    int rc = sqlite3_step(stmt);
+    sqlite3_finalize(stmt);
+
+    if (rc == SQLITE_DONE) {
+        emit libraryUpdated();
+        return true;
+    }
+    return false;
+}
+
+bool LibraryDatabase::splitShow(const QStringList &filePaths, const QString &newShowTitle, int newSeasonNumber) {
+    return assignShowAndSeason(filePaths, newShowTitle, newSeasonNumber, 1);
+}
+
+QVariantList LibraryDatabase::getAllItemsForFixup(const QString &searchQuery, const QString &typeFilter) {
+    QVariantList list;
+    if (!m_db) {
+        return list;
+    }
+
+    QString sql = "SELECT id, file_path, media_type, show_title, item_title, season_number, episode_number, year "
+                  "FROM media_items WHERE 1=1 ";
+
+    if (!searchQuery.isEmpty()) {
+        sql += QStringLiteral(" AND (show_title LIKE '%%1%' OR item_title LIKE '%%1%' OR file_path LIKE '%%1%')").arg(searchQuery);
+    }
+
+    if (typeFilter == QLatin1String("episode")) {
+        sql += QStringLiteral(" AND media_type = 'episode'");
+    } else if (typeFilter == QLatin1String("movie")) {
+        sql += QStringLiteral(" AND media_type = 'movie'");
+    }
+
+    sql += QStringLiteral(" ORDER BY COALESCE(NULLIF(show_title, ''), item_title) ASC, season_number ASC, episode_number ASC;");
+
+    sqlite3_stmt *stmt = nullptr;
+    if (sqlite3_prepare_v2(m_db, sql.toUtf8().constData(), -1, &stmt, nullptr) != SQLITE_OK) {
+        return list;
+    }
+
+    while (sqlite3_step(stmt) == SQLITE_ROW) {
+        QVariantMap item;
+        item[QStringLiteral("id")] = sqlite3_column_int64(stmt, 0);
+        item[QStringLiteral("filePath")] = QString::fromUtf8(reinterpret_cast<const char *>(sqlite3_column_text(stmt, 1)));
+        item[QStringLiteral("mediaType")] = QString::fromUtf8(reinterpret_cast<const char *>(sqlite3_column_text(stmt, 2)));
+        item[QStringLiteral("showTitle")] = QString::fromUtf8(reinterpret_cast<const char *>(sqlite3_column_text(stmt, 3)));
+        item[QStringLiteral("itemTitle")] = QString::fromUtf8(reinterpret_cast<const char *>(sqlite3_column_text(stmt, 4)));
+        item[QStringLiteral("seasonNumber")] = sqlite3_column_int(stmt, 5);
+        item[QStringLiteral("episodeNumber")] = sqlite3_column_int(stmt, 6);
+        item[QStringLiteral("year")] = sqlite3_column_int(stmt, 7);
+        list.append(item);
+    }
+
+    sqlite3_finalize(stmt);
+    return list;
 }
 
 QVariantList LibraryDatabase::getShows(const QString &searchQuery, const QString &filter, const QString &sort) {
@@ -506,6 +664,7 @@ QVariantList LibraryDatabase::getEpisodes(const QString &showTitle, int seasonNu
         QVariantMap ep;
         ep[QStringLiteral("id")] = sqlite3_column_int64(stmt, 0);
         ep[QStringLiteral("filePath")] = QString::fromUtf8(reinterpret_cast<const char *>(sqlite3_column_text(stmt, 1)));
+        ep[QStringLiteral("seasonNumber")] = seasonNumber;
         ep[QStringLiteral("episodeNumber")] = sqlite3_column_int(stmt, 2);
         ep[QStringLiteral("itemTitle")] = QString::fromUtf8(reinterpret_cast<const char *>(sqlite3_column_text(stmt, 3)));
         ep[QStringLiteral("duration")] = sqlite3_column_double(stmt, 4);
@@ -525,7 +684,6 @@ QVariantList LibraryDatabase::getContinueWatchingAndNextUp(int limit) {
         return list;
     }
 
-    // 1. In-progress items (position > 10s and uncompleted)
     const char *inProgressSql = R"(
         SELECT
             m.file_path, m.media_type, m.show_title, m.item_title,
@@ -567,7 +725,6 @@ QVariantList LibraryDatabase::getContinueWatchingAndNextUp(int limit) {
     }
     sqlite3_finalize(stmt);
 
-    // 2. Next Up for shows where the last watched episode was completed
     const char *showsWithCompletedSql = R"(
         SELECT m.show_title, m.season_number, m.episode_number, p.last_watched_at
         FROM playback_history p
@@ -590,7 +747,6 @@ QVariantList LibraryDatabase::getContinueWatchingAndNextUp(int limit) {
             }
             processedShows.append(show);
 
-            // Find next episode in sequence
             const char *nextEpSql = R"(
                 SELECT
                     m.file_path, m.media_type, m.show_title, m.item_title,

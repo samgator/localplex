@@ -45,6 +45,10 @@ set(LOCALPLEX_SOURCES
     src/scanner/filename_parser.cpp
     src/scanner/library_scanner.h
     src/scanner/library_scanner.cpp
+    src/scanner/nfo_parser.h
+    src/scanner/nfo_parser.cpp
+    src/scanner/folder_watcher.h
+    src/scanner/folder_watcher.cpp
     src/models/library_model.h
     src/models/library_model.cpp
     src/core/keybind_manager.h
@@ -142,3 +146,32 @@ target_link_libraries(test_library_database PRIVATE
     SQLite3::SQLite3
 )
 add_test(NAME LibraryDatabaseTest COMMAND test_library_database)
+
+# NFO parser unit test
+add_executable(test_nfo_parser
+    tests/unit/test_nfo_parser.cpp
+    src/scanner/nfo_parser.h
+    src/scanner/nfo_parser.cpp
+)
+target_include_directories(test_nfo_parser PRIVATE src)
+target_link_libraries(test_nfo_parser PRIVATE
+    Qt6::Core
+    Qt6::Test
+)
+add_test(NAME NfoParserTest COMMAND test_nfo_parser)
+
+# Metadata fix-up unit test
+add_executable(test_fixup
+    tests/unit/test_fixup.cpp
+    src/database/library_database.h
+    src/database/library_database.cpp
+    src/database/playback_database.h
+    src/database/playback_database.cpp
+)
+target_include_directories(test_fixup PRIVATE src)
+target_link_libraries(test_fixup PRIVATE
+    Qt6::Core
+    Qt6::Test
+    SQLite3::SQLite3
+)
+add_test(NAME FixupTest COMMAND test_fixup)

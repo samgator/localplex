@@ -47,11 +47,21 @@ public:
     Q_INVOKABLE bool addFolder(const QString &path);
     Q_INVOKABLE bool removeFolder(const QString &path);
     Q_INVOKABLE QStringList getFolders();
+    Q_INVOKABLE bool isDirectory(const QString &path) const;
 
     // Media Items
     bool upsertItem(const MediaItemRecord &item);
     bool removeMissingItems(const QString &folderRoot, const QStringList &validPaths);
     int getItemCount();
+
+    // Fix-up & Metadata Override Operations (Stored in database only, never on filesystem)
+    Q_INVOKABLE bool assignShowAndSeason(const QStringList &filePaths, const QString &showTitle,
+                                         int seasonNumber, int startEpisodeNumber = 1);
+    Q_INVOKABLE bool assignMovie(const QString &filePath, const QString &movieTitle, int year = 0);
+    Q_INVOKABLE bool mergeShows(const QString &sourceShowTitle, const QString &targetShowTitle);
+    Q_INVOKABLE bool splitShow(const QStringList &filePaths, const QString &newShowTitle, int newSeasonNumber = 1);
+    Q_INVOKABLE QVariantList getAllItemsForFixup(const QString &searchQuery = QString(),
+                                                const QString &typeFilter = QStringLiteral("all"));
 
     // Catalog Queries for QML
     Q_INVOKABLE QVariantList getShows(const QString &searchQuery = QString(),

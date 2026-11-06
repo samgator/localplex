@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Phase 3: Import & Fix-up**
+  - Event-driven filesystem folder watcher (`src/scanner/folder_watcher.h`, `folder_watcher.cpp`) leveraging `QFileSystemWatcher` with write-settle debouncing (800 ms) to trigger automated background rescanning on file changes with zero polling loops and near-zero idle CPU.
+  - Native Drag-and-Drop import in QML (`src/qml/Main.qml`), supporting directory drops for automated catalog addition and background indexing, as well as single video drops for instant playback.
+  - Local-first `.nfo` XML companion metadata parser (`src/scanner/nfo_parser.h`, `nfo_parser.cpp`), extracting titles, show titles, season/episode numbers, release years, and plots from companion `<basename>.nfo`, `movie.nfo`, and `tvshow.nfo` sidecars.
+  - Interactive Metadata Fix-up & Correction view (`src/qml/FixupView.qml`), providing multi-select batch corrections, sequential episode numbering assignment, movie assignment, show merging, and show splitting.
+  - Strict Rule 4 verification: All metadata corrections and overrides are stored exclusively in SQLite (`media_items` table); original media files and directories on disk are guaranteed to never be modified, renamed, or have their timestamps altered.
+  - Automated unit test suites for NFO sidecar parsing (`test_nfo_parser`) and Rule 4-compliant metadata fix-ups (`test_fixup`).
+
 - **Phase 2: Library & Catalog**
   - High-performance SQLite catalog schema (`src/database/library_database.h`, `library_database.cpp`) indexing shows, seasons, episodes, and feature films.
   - Robust heuristic filename and folder parser (`src/scanner/filename_parser.h`, `filename_parser.cpp`) resolving SxxExx, 1x02, anime numbering, directory hierarchies, and release noise.

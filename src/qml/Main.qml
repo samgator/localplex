@@ -186,6 +186,9 @@ ApplicationWindow {
             } else if (activeView === "show_detail") {
                 activeView = "library"
                 return true
+            } else if (activeView === "fixup") {
+                activeView = "library"
+                return true
             }
         }
         return false
@@ -371,7 +374,7 @@ ApplicationWindow {
 
             // Add Folder Button
             Button {
-                visible: activeView === "library"
+                visible: activeView === "library" || activeView === "fixup"
                 Layout.preferredHeight: 30
                 background: Rectangle {
                     color: parent.hovered ? "#1c1f26" : "#12141a"
@@ -395,6 +398,39 @@ ApplicationWindow {
                     }
                 }
                 onClicked: folderDialog.open()
+            }
+
+            // Fix-up Button
+            Button {
+                visible: activeView === "library" || activeView === "fixup"
+                Layout.preferredHeight: 30
+                background: Rectangle {
+                    color: activeView === "fixup" ? "#2563eb" : (parent.hovered ? "#1c1f26" : "#12141a")
+                    border.color: activeView === "fixup" ? "#3b82f6" : "#232733"
+                    border.width: 1
+                    radius: 4
+                }
+                contentItem: RowLayout {
+                    spacing: 6
+                    anchors.centerIn: parent
+                    Image {
+                        source: "qrc:/assets/icons/edit.svg"
+                        sourceSize.width: 14
+                        sourceSize.height: 14
+                    }
+                    Text {
+                        text: "Fix-up"
+                        color: "#ffffff"
+                        font.pixelSize: 12
+                        font.weight: Font.Medium
+                    }
+                }
+                onClicked: {
+                    activeView = (activeView === "fixup" ? "library" : "fixup")
+                    if (activeView === "fixup" && fixupLoader.item) {
+                        fixupLoader.item.reloadData()
+                    }
+                }
             }
         }
     }
@@ -977,6 +1013,23 @@ ApplicationWindow {
         }
     }
 
+    // Fix-up / Corrections View (Rule 4 compliant metadata overrides)
+    Loader {
+        id: fixupLoader
+        anchors.top: scanBanner.visible ? scanBanner.bottom : topNav.bottom
+        anchors.bottom: parent.bottom
+        anchors.left: parent.left
+        anchors.right: parent.right
+        active: activeView === "fixup"
+        visible: activeView === "fixup"
+        source: "qrc:/src/qml/FixupView.qml"
+        onLoaded: {
+            item.backRequested.connect(function() { activeView = "library"; });
+            item.notifyUser.connect(function(msg) { root.showToast(msg); });
+            item.reloadData();
+        }
+    }
+
     // 3. Player View (Active Video Pipeline)
     Item {
         id: videoContainer
@@ -991,14 +1044,6 @@ ApplicationWindow {
 
             onResumed: function(resumePos, origPos) {
                 root.showToast("Resumed at " + root.formatTime(resumePos) + " (rewound 2.5s for context)")
-            }
-
-            Component.onCompleted: {
-                if (Qt.application.arguments.indexOf("--benchmark-mode") !== -1) {
-                    Qt.callLater(function() {
-                        Qt.quit()
-                    })
-                }
             }
         }
 
@@ -1660,6 +1705,89 @@ ApplicationWindow {
             libraryDatabase.addFolder(path)
             libraryScanner.startScan()
             root.showToast("Folder added. Scanning media...")
+        }
+    }
+
+    // Drag-and-Drop Import Support
+    DropArea {
+        id: windowDropArea
+        anchors.fill: parent
+        z: 999
+
+        property bool isDragging: false
+
+        onEntered: function(drag) {
+            if (drag.hasUrls) {
+                drag.acceptProposedAction()
+                windowDropArea.isDragging = true
+            }
+        }
+        onExited: {
+            windowDropArea.isDragging = false
+        }
+        onDropped: function(drop) {
+            windowDropArea.isDragging = false
+            if (!drop.hasUrls) return
+
+            var folderCount = 0
+            var filePlayed = false
+
+            for (var i = 0; i < drop.urls.length; ++i) {
+                var urlStr = drop.urls[i].toString()
+                var localPath = urlStr
+                if (localPath.indexOf("file://") === 0) {
+                    localPath = decodeURIComponent(localPath.substring(7))
+                }
+                if (libraryDatabase.isDirectory(localPath)) {
+                    libraryDatabase.addFolder(localPath)
+                    folderCount++
+                } else {
+                    if (!filePlayed && (activeView === "player" || drop.urls.length === 1)) {
+                        root.playFile(localPath)
+                        filePlayed = true
+                    }
+                }
+            }
+
+            if (folderCount > 0) {
+                libraryScanner.startScan()
+                root.showToast("Imported " + folderCount + " folder" + (folderCount > 1 ? "s" : "") + ". Scanning media...")
+            }
+        }
+
+        Rectangle {
+            anchors.fill: parent
+            color: "#e6090a0d"
+            visible: windowDropArea.isDragging
+            border.color: "#3b82f6"
+            border.width: 2
+
+            ColumnLayout {
+                anchors.centerIn: parent
+                spacing: 14
+
+                Image {
+                    source: "qrc:/assets/icons/folder-open.svg"
+                    sourceSize.width: 48
+                    sourceSize.height: 48
+                    Layout.alignment: Qt.AlignHCenter
+                }
+
+                Text {
+                    text: "Drop media folder to import or video file to play"
+                    color: "#ffffff"
+                    font.pixelSize: 16
+                    font.weight: Font.DemiBold
+                    Layout.alignment: Qt.AlignHCenter
+                }
+
+                Text {
+                    text: "Rule 4: Your files remain untouched. Metadata is cataloged locally in SQLite."
+                    color: "#94a3b8"
+                    font.pixelSize: 12
+                    Layout.alignment: Qt.AlignHCenter
+                }
+            }
         }
     }
 }

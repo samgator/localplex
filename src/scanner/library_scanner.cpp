@@ -2,6 +2,7 @@
 
 #include "library_scanner.h"
 #include "filename_parser.h"
+#include "nfo_parser.h"
 #include "../database/library_database.h"
 
 #include <QtCore/QDirIterator>
@@ -150,7 +151,21 @@ void ScannerWorker::doScan(const QStringList &folders) {
             record.year = parsed.year;
             record.fileSize = fi.size();
             record.fileMtime = fi.lastModified().toSecsSinceEpoch();
-            record.thumbnailPath = resolveThumbnail(filePath, parsed.showTitle, parsed.type == MediaType::Episode);
+
+            // Check for companion .nfo sidecar
+            const QString nfoPath = NfoParser::findNfoForMedia(filePath, parsed.type == MediaType::Episode);
+            if (!nfoPath.isEmpty()) {
+                ParsedNfoInfo nfo = NfoParser::parse(nfoPath);
+                if (nfo.hasData) {
+                    if (!nfo.title.isEmpty()) record.itemTitle = nfo.title;
+                    if (!nfo.showTitle.isEmpty()) record.showTitle = nfo.showTitle;
+                    if (nfo.seasonNumber > 0) record.seasonNumber = nfo.seasonNumber;
+                    if (nfo.episodeNumber > 0) record.episodeNumber = nfo.episodeNumber;
+                    if (nfo.year > 0) record.year = nfo.year;
+                }
+            }
+
+            record.thumbnailPath = resolveThumbnail(filePath, record.showTitle, record.mediaType == QLatin1String("episode"));
 
             database::LibraryDatabase::instance().upsertItem(record);
             totalScanned++;

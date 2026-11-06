@@ -78,8 +78,12 @@ Run the binary:
   - Virtualized catalog and continue watching models (`CatalogModel`, `ContinueWatchingModel`)
   - Responsive poster grid, show detail view with season tabs, and Next Up sequencing
   - Real-time search and watched/unwatched filtering
-- **Phase 3: Import & Fix-up**
-  - Folder watching, drag-and-drop import, file parser test suite and correction UI
+- **Phase 3: Import & Fix-up** (Completed)
+  - Event-driven filesystem watcher with debounce (`FolderWatcher`)
+  - Drag-and-drop import for media folders and video files
+  - Local-first companion `.nfo` metadata parsing (`NfoParser`)
+  - Rule 4-compliant metadata correction and fix-up UI (`FixupView`)
+  - Show merging, splitting, and sequential episode renumbering
 - **Phase 4: Themes & Polish**
   - Token-based themes, live reload, accessibility, and human copywriting
 - **Phase 5: Packaging & Release**
