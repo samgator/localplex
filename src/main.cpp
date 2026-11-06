@@ -2,6 +2,9 @@
 
 #include "player/mpv_player_item.h"
 #include "database/playback_database.h"
+#include "database/library_database.h"
+#include "scanner/library_scanner.h"
+#include "models/library_model.h"
 #include "core/keybind_manager.h"
 
 #include <QtGui/QGuiApplication>
@@ -34,16 +37,22 @@ int main(int argc, char *argv[]) {
     app.setOrganizationName(QStringLiteral("localplex"));
     app.setOrganizationDomain(QStringLiteral("localplex.org"));
 
-    // Initialize local database & keybind manager
+    // Initialize databases and keybind manager
     localplex::database::PlaybackDatabase::instance().initialize();
+    localplex::database::LibraryDatabase::instance().initialize();
     localplex::core::KeybindManager::instance().loadConfiguration();
 
     // Register bundled typography
     QFontDatabase::addApplicationFont(QStringLiteral(":/assets/fonts/Inter-Variable.ttf"));
 
-    // Register player QML types and singletons
+    // Register player, models, and singletons
     qmlRegisterType<localplex::player::MpvPlayerItem>("localplex.player", 1, 0, "MpvPlayer");
+    qmlRegisterType<localplex::models::CatalogModel>("localplex.models", 1, 0, "CatalogModel");
+    qmlRegisterType<localplex::models::ContinueWatchingModel>("localplex.models", 1, 0, "ContinueWatchingModel");
+
     qmlRegisterSingletonInstance("localplex.database", 1, 0, "PlaybackDatabase", &localplex::database::PlaybackDatabase::instance());
+    qmlRegisterSingletonInstance("localplex.database", 1, 0, "LibraryDatabase", &localplex::database::LibraryDatabase::instance());
+    qmlRegisterSingletonInstance("localplex.scanner", 1, 0, "LibraryScanner", &localplex::scanner::LibraryScanner::instance());
     qmlRegisterSingletonInstance("localplex.core", 1, 0, "KeybindManager", &localplex::core::KeybindManager::instance());
 
     // Command-line options
@@ -68,6 +77,8 @@ int main(int argc, char *argv[]) {
 
     // Provide context properties for ease of QML scripting
     engine.rootContext()->setContextProperty(QStringLiteral("playbackDatabase"), &localplex::database::PlaybackDatabase::instance());
+    engine.rootContext()->setContextProperty(QStringLiteral("libraryDatabase"), &localplex::database::LibraryDatabase::instance());
+    engine.rootContext()->setContextProperty(QStringLiteral("libraryScanner"), &localplex::scanner::LibraryScanner::instance());
     engine.rootContext()->setContextProperty(QStringLiteral("keybindManager"), &localplex::core::KeybindManager::instance());
 
     // Check if an initial media file argument was passed
@@ -76,6 +87,15 @@ int main(int argc, char *argv[]) {
     if (!positionalArgs.isEmpty()) {
         const QString argPath = positionalArgs.first();
         const QFileInfo fi(argPath);
+        if (fi.exists()) {
+            initialFilePath = fi.absoluteFilePath();
+        }
+    }
+
+    const bool isPlaybackBench = parser.isSet(benchPlaybackOption);
+    const QString benchFilePath = parser.value(benchPlaybackOption);
+    if (isPlaybackBench && !benchFilePath.isEmpty()) {
+        const QFileInfo fi(benchFilePath);
         if (fi.exists()) {
             initialFilePath = fi.absoluteFilePath();
         }
@@ -89,15 +109,6 @@ int main(int argc, char *argv[]) {
             QCoreApplication::exit(-1);
         }
     }, Qt::QueuedConnection);
-
-    const bool isPlaybackBench = parser.isSet(benchPlaybackOption);
-    const QString benchFilePath = parser.value(benchPlaybackOption);
-    if (isPlaybackBench && !benchFilePath.isEmpty()) {
-        const QFileInfo fi(benchFilePath);
-        if (fi.exists()) {
-            initialFilePath = fi.absoluteFilePath();
-        }
-    }
 
     engine.load(url);
 

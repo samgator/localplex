@@ -39,6 +39,14 @@ set(LOCALPLEX_SOURCES
     src/player/mpv_node_converter.h
     src/database/playback_database.h
     src/database/playback_database.cpp
+    src/database/library_database.h
+    src/database/library_database.cpp
+    src/scanner/filename_parser.h
+    src/scanner/filename_parser.cpp
+    src/scanner/library_scanner.h
+    src/scanner/library_scanner.cpp
+    src/models/library_model.h
+    src/models/library_model.cpp
     src/core/keybind_manager.h
     src/core/keybind_manager.cpp
     resources.qrc
@@ -105,3 +113,32 @@ target_link_libraries(test_keybinds PRIVATE
     Qt6::Test
 )
 add_test(NAME KeybindsTest COMMAND test_keybinds)
+
+# Filename parser unit test
+add_executable(test_filename_parser
+    tests/unit/test_filename_parser.cpp
+    src/scanner/filename_parser.h
+    src/scanner/filename_parser.cpp
+)
+target_include_directories(test_filename_parser PRIVATE src)
+target_link_libraries(test_filename_parser PRIVATE
+    Qt6::Core
+    Qt6::Test
+)
+add_test(NAME FilenameParserTest COMMAND test_filename_parser)
+
+# Library database unit test
+add_executable(test_library_database
+    tests/unit/test_library_database.cpp
+    src/database/library_database.h
+    src/database/library_database.cpp
+    src/database/playback_database.h
+    src/database/playback_database.cpp
+)
+target_include_directories(test_library_database PRIVATE src)
+target_link_libraries(test_library_database PRIVATE
+    Qt6::Core
+    Qt6::Test
+    SQLite3::SQLite3
+)
+add_test(NAME LibraryDatabaseTest COMMAND test_library_database)

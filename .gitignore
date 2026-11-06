@@ -36,6 +36,7 @@ ui_*.h
 *.db-shm
 *.db-wal
 *.log
+tests/fixtures/sample_library/
 
 # Environment and secrets
 .env

@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Phase 2: Library & Catalog**
+  - High-performance SQLite catalog schema (`src/database/library_database.h`, `library_database.cpp`) indexing shows, seasons, episodes, and feature films.
+  - Robust heuristic filename and folder parser (`src/scanner/filename_parser.h`, `filename_parser.cpp`) resolving SxxExx, 1x02, anime numbering, directory hierarchies, and release noise.
+  - Background scanner (`src/scanner/library_scanner.h`, `library_scanner.cpp`) with downscaled on-disk thumbnail caching to protect memory and render budgets.
+  - Virtualized catalog and shelf models (`src/models/library_model.h`, `library_model.cpp`) supporting real-time search, watched/unwatched filtering, and sorting.
+  - Multi-view UI architecture in QML: Library Grid, Show Detail View (with season tabs and episode lists), and Continue Watching / Next Up shelf.
+  - 5,000-item database scalability benchmark (`tools/bench/library_bench.py`).
+  - Automated unit test suites for filename parsing (`test_filename_parser`) and library catalog relations (`test_library_database`).
+
 - **Phase 1: Vertical Slice**
   - Integrated SQLite playback database (`src/database/playback_database.h`, `playback_database.cpp`) for tracking progress, completed state (at >= 90%), and per-show language preferences.
   - Automatic resume functionality with 2.5-second context rewind.
