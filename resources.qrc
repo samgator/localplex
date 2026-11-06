@@ -1,0 +1,12 @@
+<!DOCTYPE RCC>
+<RCC version="1.0">
+    <qresource prefix="/">
+        <file>src/qml/Main.qml</file>
+        <file>assets/fonts/Inter-Variable.ttf</file>
+        <file>assets/icons/play.svg</file>
+        <file>assets/icons/pause.svg</file>
+        <file>assets/icons/folder-open.svg</file>
+        <file>assets/icons/volume.svg</file>
+        <file>assets/icons/fullscreen.svg</file>
+    </qresource>
+</RCC>
