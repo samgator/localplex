@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "player/mpv_player_item.h"
+#include "database/playback_database.h"
+#include "core/keybind_manager.h"
 
 #include <QtGui/QGuiApplication>
 #include <QtGui/QFontDatabase>
-#include <QtGui/QIcon>
 #include <QtQml/QQmlApplicationEngine>
 #include <QtQml/QQmlContext>
 #include <QtQuick/QQuickWindow>
@@ -12,6 +13,9 @@
 #include <QtCore/QCommandLineOption>
 #include <QtCore/QFileInfo>
 #include <QtCore/QDir>
+#include <QtCore/QElapsedTimer>
+#include <QtCore/QTextStream>
+#include <QtCore/QTimer>
 #include <clocale>
 
 int main(int argc, char *argv[]) {
@@ -30,11 +34,17 @@ int main(int argc, char *argv[]) {
     app.setOrganizationName(QStringLiteral("localplex"));
     app.setOrganizationDomain(QStringLiteral("localplex.org"));
 
+    // Initialize local database & keybind manager
+    localplex::database::PlaybackDatabase::instance().initialize();
+    localplex::core::KeybindManager::instance().loadConfiguration();
+
     // Register bundled typography
     QFontDatabase::addApplicationFont(QStringLiteral(":/assets/fonts/Inter-Variable.ttf"));
 
-    // Register player QML type
+    // Register player QML types and singletons
     qmlRegisterType<localplex::player::MpvPlayerItem>("localplex.player", 1, 0, "MpvPlayer");
+    qmlRegisterSingletonInstance("localplex.database", 1, 0, "PlaybackDatabase", &localplex::database::PlaybackDatabase::instance());
+    qmlRegisterSingletonInstance("localplex.core", 1, 0, "KeybindManager", &localplex::core::KeybindManager::instance());
 
     // Command-line options
     QCommandLineParser parser;
@@ -46,10 +56,19 @@ int main(int argc, char *argv[]) {
                                    QStringLiteral("Run in benchmark mode and exit after first frame"));
     parser.addOption(benchOption);
 
+    QCommandLineOption benchPlaybackOption(QStringLiteral("bench-playback"),
+                                           QStringLiteral("Measure playback start and seek latency on target file"),
+                                           QStringLiteral("file"));
+    parser.addOption(benchPlaybackOption);
+
     parser.addPositionalArgument(QStringLiteral("file"), QStringLiteral("Video file to play directly"));
     parser.process(app);
 
     QQmlApplicationEngine engine;
+
+    // Provide context properties for ease of QML scripting
+    engine.rootContext()->setContextProperty(QStringLiteral("playbackDatabase"), &localplex::database::PlaybackDatabase::instance());
+    engine.rootContext()->setContextProperty(QStringLiteral("keybindManager"), &localplex::core::KeybindManager::instance());
 
     // Check if an initial media file argument was passed
     QString initialFilePath;
@@ -71,9 +90,52 @@ int main(int argc, char *argv[]) {
         }
     }, Qt::QueuedConnection);
 
+    const bool isPlaybackBench = parser.isSet(benchPlaybackOption);
+    const QString benchFilePath = parser.value(benchPlaybackOption);
+    if (isPlaybackBench && !benchFilePath.isEmpty()) {
+        const QFileInfo fi(benchFilePath);
+        if (fi.exists()) {
+            initialFilePath = fi.absoluteFilePath();
+        }
+    }
+
     engine.load(url);
 
-    if (!initialFilePath.isEmpty()) {
+    if (isPlaybackBench && !initialFilePath.isEmpty()) {
+        localplex::database::PlaybackDatabase::instance().clearProgress(initialFilePath);
+        QObject *rootObject = engine.rootObjects().value(0);
+        if (rootObject) {
+            auto *playerItem = rootObject->findChild<localplex::player::MpvPlayerItem *>(QStringLiteral("mpvPlayer"));
+            if (playerItem) {
+                auto *timer = new QElapsedTimer();
+                timer->start();
+
+                QObject::connect(playerItem, &localplex::player::MpvPlayerItem::fileLoaded, [timer, playerItem]() {
+                    qint64 startMs = timer->elapsed();
+                    QTextStream(stdout) << "[BENCH_PLAYBACK_START] " << startMs << " ms\n";
+                    QTextStream(stdout).flush();
+
+                    timer->restart();
+                    playerItem->seek(8.0, false);
+                });
+
+                QObject::connect(playerItem, &localplex::player::MpvPlayerItem::positionChanged, [timer](double pos) {
+                    if (pos >= 7.5 && timer->isValid()) {
+                        qint64 seekMs = timer->elapsed();
+                        timer->invalidate();
+                        QTextStream(stdout) << "[BENCH_SEEK_LATENCY] " << seekMs << " ms\n";
+                        QTextStream(stdout).flush();
+
+                        QTimer::singleShot(100, []() {
+                            QCoreApplication::quit();
+                        });
+                    }
+                });
+
+                playerItem->loadFile(initialFilePath);
+            }
+        }
+    } else if (!initialFilePath.isEmpty()) {
         QObject *rootObject = engine.rootObjects().value(0);
         if (rootObject) {
             rootObject->setProperty("initialFilePath", initialFilePath);

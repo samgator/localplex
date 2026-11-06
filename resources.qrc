@@ -8,5 +8,9 @@
         <file>assets/icons/folder-open.svg</file>
         <file>assets/icons/volume.svg</file>
         <file>assets/icons/fullscreen.svg</file>
+        <file>assets/icons/subtitles.svg</file>
+        <file>assets/icons/audio.svg</file>
+        <file>assets/icons/speed.svg</file>
+        <file>assets/icons/checkmark.svg</file>
     </qresource>
 </RCC>

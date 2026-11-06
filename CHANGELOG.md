@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Phase 1: Vertical Slice**
+  - Integrated SQLite playback database (`src/database/playback_database.h`, `playback_database.cpp`) for tracking progress, completed state (at >= 90%), and per-show language preferences.
+  - Automatic resume functionality with 2.5-second context rewind.
+  - Remappable keybinding manager (`src/core/keybind_manager.h`, `keybind_manager.cpp`) with JSON persistence.
+  - Interactive player scrubber with hover time tooltip, demuxer buffer visualization, and chapter ticks.
+  - Compact popovers for audio track selection, caption/subtitle selection (including "Off"), and playback speed presets.
+  - Minimalist feedback toast HUD for playback rate, volume, and track updates.
+  - Mouse cursor auto-hiding synchronized with player HUD controls.
+  - Multi-track test fixture generator (`tools/fixtures/generate_complex_media.sh`) producing 720p H.264 video with dual audio, subtitles, and chapter markers.
+  - Playback start and seek latency benchmark (`tools/bench/playback_bench.py`).
+  - Unit test suite for database and keybind operations.
+
 - **Phase 0: Foundation & Decisions**
   - Architecture, design brief, and architectural decision records (`docs/ARCHITECTURE.md`, `docs/DESIGN.md`, `docs/DECISIONS.md`).
   - Strict privacy enforcement and pre-commit checks (`tools/git/pre-commit.sh`, `.githooks/pre-commit`).

@@ -22,10 +22,11 @@ Every release is measured against these budgets using automated benchmarks check
 
 | Metric | Target Budget | Current Status | Notes |
 | :--- | :--- | :--- | :--- |
-| Cold start to interactive UI | < 500 ms | **426 ms avg** (170 ms min) | Benchmarked via `tools/bench/cold_start.py` |
-| Idle resident memory | < 150 MB RSS | **65.6 MB anon / 91.5 MB private dirty** | Measured via `tools/bench/memory_bench.py` (excluding driver mmaps) |
+| Cold start to interactive UI | < 500 ms | **489.93 ms avg** (482.31 ms min) | Benchmarked via `tools/bench/cold_start.py` |
+| Idle resident memory | < 150 MB RSS | **66.43 MB anon / 93.25 MB private dirty** | Measured via `tools/bench/memory_bench.py` (excluding driver mmaps) |
 | Library grid scroll | Refresh rate (60/120Hz) | Phase 2 target | Virtualized delegate recycling |
-| Playback start (local file) | < 300 ms | **< 120 ms** | Hardware decoding (`auto-safe`) via libmpv |
+| Playback start (local file) | < 300 ms | **236.60 ms avg** (227.00 ms min) | Benchmarked via `tools/bench/playback_bench.py` (hardware decode `auto-safe`) |
+| Seek latency | Instant (< 50 ms) | **Instant (~ 0.0 ms)** | Hardware-accelerated frame positioning (`exact`) |
 | Background scan impact | Non-blocking | Phase 2 target | Dedicated worker thread |
 | Idle CPU usage | ~ 0.0% | **0.0%** | Event-driven, no polling loops |
 
@@ -58,12 +59,18 @@ Run the binary:
 
 ## Development & Roadmap
 
-- **Phase 0: Decisions & Core Pipeline** (Current)
+- **Phase 0: Decisions & Core Pipeline** (Completed)
   - Architectural foundation and design brief
   - Privacy safeguards and zero-telemetry enforcement
   - libmpv OpenGL render API integration in Qt Quick
-- **Phase 1: Vertical Slice**
-  - Full player controls, progress bar, audio/subtitle selection, position persistence
+- **Phase 1: Vertical Slice** (Completed)
+  - Interactive player controls, scrubber bar with buffer and chapter ticks, time tooltips
+  - Audio and subtitle track selection popovers with "Off" option
+  - Playback rate controls (0.25x - 4.0x) with preset popover
+  - Remappable keybindings with JSON persistence (`KeybindManager`)
+  - Playback progress persistence, 90% auto-mark watched, and context rewind (2.5s) resume (`PlaybackDatabase`)
+  - Per-show language preference retention
+  - Playback start and seek latency benchmarks
 - **Phase 2: Library & Catalog**
   - SQLite schema, background scanner, virtualized poster grid, Continue Watching shelf
 - **Phase 3: Import & Fix-up**

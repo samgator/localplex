@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "mpv_player_item.h"
+#include "mpv_node_converter.h"
+#include "../database/playback_database.h"
 
 #include <mpv/client.h>
 #include <mpv/render_gl.h>
@@ -10,9 +12,12 @@
 #include <QtQuick/QQuickWindow>
 #include <QtQuick/QQuickOpenGLUtils>
 #include <QtCore/QUrl>
+#include <QtCore/QFileInfo>
+#include <QtCore/QDir>
 #include <QtCore/QMetaObject>
 #include <QtCore/QDebug>
 #include <cstring>
+#include <algorithm>
 #include <vector>
 
 namespace localplex::player {
@@ -127,13 +132,22 @@ MpvPlayerItem::MpvPlayerItem(QQuickItem *parent)
     mpv_observe_property(m_mpvHandle, 0, "speed", MPV_FORMAT_DOUBLE);
     mpv_observe_property(m_mpvHandle, 0, "media-title", MPV_FORMAT_STRING);
     mpv_observe_property(m_mpvHandle, 0, "core-idle", MPV_FORMAT_FLAG);
+    mpv_observe_property(m_mpvHandle, 0, "track-list", MPV_FORMAT_NODE);
+    mpv_observe_property(m_mpvHandle, 0, "chapter-list", MPV_FORMAT_NODE);
+    mpv_observe_property(m_mpvHandle, 0, "chapter", MPV_FORMAT_INT64);
+    mpv_observe_property(m_mpvHandle, 0, "demuxer-cache-state", MPV_FORMAT_NODE);
 
     mpv_set_wakeup_callback(m_mpvHandle, onMpvWakeup, this);
 
     connect(this, &MpvPlayerItem::requestUpdate, this, &MpvPlayerItem::onMpvRedrawRequested, Qt::QueuedConnection);
+
+    // Save playback position periodically every 5 seconds while playing
+    m_saveTimer.setInterval(5000);
+    connect(&m_saveTimer, &QTimer::timeout, this, &MpvPlayerItem::saveCurrentProgress);
 }
 
 MpvPlayerItem::~MpvPlayerItem() {
+    saveCurrentProgress();
     if (m_mpvHandle) {
         mpv_set_wakeup_callback(m_mpvHandle, nullptr, nullptr);
         if (m_mpvRenderContext) {
@@ -172,6 +186,10 @@ double MpvPlayerItem::duration() const {
     return m_duration;
 }
 
+double MpvPlayerItem::bufferPosition() const {
+    return m_bufferPosition;
+}
+
 bool MpvPlayerItem::isPaused() const {
     return m_paused;
 }
@@ -181,6 +199,12 @@ void MpvPlayerItem::setPaused(bool paused) {
         return;
     }
     setPropertyInternal("pause", paused);
+    if (paused) {
+        saveCurrentProgress();
+        m_saveTimer.stop();
+    } else {
+        m_saveTimer.start();
+    }
 }
 
 double MpvPlayerItem::volume() const {
@@ -188,6 +212,7 @@ double MpvPlayerItem::volume() const {
 }
 
 void MpvPlayerItem::setVolume(double volume) {
+    volume = std::clamp(volume, 0.0, 100.0);
     if (m_volume == volume) {
         return;
     }
@@ -210,10 +235,19 @@ double MpvPlayerItem::speed() const {
 }
 
 void MpvPlayerItem::setSpeed(double speed) {
+    speed = std::clamp(speed, 0.25, 4.0);
     if (m_speed == speed) {
         return;
     }
     setPropertyInternal("speed", speed);
+}
+
+void MpvPlayerItem::adjustSpeed(double delta) {
+    setSpeed(m_speed + delta);
+}
+
+void MpvPlayerItem::resetSpeed() {
+    setSpeed(1.0);
 }
 
 QString MpvPlayerItem::mediaTitle() const {
@@ -228,10 +262,134 @@ bool MpvPlayerItem::isCoreIdle() const {
     return m_coreIdle;
 }
 
+QVariantList MpvPlayerItem::audioTracks() const {
+    return m_audioTracks;
+}
+
+QVariantList MpvPlayerItem::subtitleTracks() const {
+    return m_subtitleTracks;
+}
+
+int MpvPlayerItem::currentAudioTrackId() const {
+    return m_currentAudioTrackId;
+}
+
+void MpvPlayerItem::setAudioTrackId(int id) {
+    setAudioTrack(id);
+}
+
+int MpvPlayerItem::currentSubtitleTrackId() const {
+    return m_currentSubtitleTrackId;
+}
+
+void MpvPlayerItem::setSubtitleTrackId(int id) {
+    setSubtitleTrack(id);
+}
+
+QString MpvPlayerItem::currentAudioLanguage() const {
+    return m_currentAudioLang;
+}
+
+QString MpvPlayerItem::currentSubtitleLanguage() const {
+    return m_currentSubtitleLang;
+}
+
+QVariantList MpvPlayerItem::chapters() const {
+    return m_chapters;
+}
+
+int MpvPlayerItem::currentChapter() const {
+    return m_currentChapter;
+}
+
+void MpvPlayerItem::setAudioTrack(int trackId) {
+    if (!m_mpvHandle) {
+        return;
+    }
+    if (trackId < 0) {
+        const char *cmd[] = {"set", "aid", "no", nullptr};
+        mpv_command_async(m_mpvHandle, 0, cmd);
+    } else {
+        QByteArray trackStr = QByteArray::number(trackId);
+        const char *cmd[] = {"set", "aid", trackStr.constData(), nullptr};
+        mpv_command_async(m_mpvHandle, 0, cmd);
+    }
+
+    // Remember preferred audio language for the show
+    if (!m_currentAudioLang.isEmpty()) {
+        const QString showKey = extractShowKey(m_source);
+        database::PlaybackDatabase::instance().saveShowPreferences(showKey, m_currentAudioLang, QString());
+    }
+}
+
+void MpvPlayerItem::setSubtitleTrack(int trackId) {
+    if (!m_mpvHandle) {
+        return;
+    }
+    if (trackId <= 0) {
+        const char *cmd[] = {"set", "sid", "no", nullptr};
+        mpv_command_async(m_mpvHandle, 0, cmd);
+        m_currentSubtitleTrackId = -1;
+        emit currentSubtitleTrackIdChanged(-1);
+    } else {
+        QByteArray trackStr = QByteArray::number(trackId);
+        const char *cmd[] = {"set", "sid", trackStr.constData(), nullptr};
+        mpv_command_async(m_mpvHandle, 0, cmd);
+    }
+
+    // Remember preferred subtitle language for the show
+    if (!m_currentSubtitleLang.isEmpty()) {
+        const QString showKey = extractShowKey(m_source);
+        database::PlaybackDatabase::instance().saveShowPreferences(showKey, QString(), m_currentSubtitleLang);
+    }
+}
+
+void MpvPlayerItem::cycleAudioTrack() {
+    if (!m_mpvHandle) {
+        return;
+    }
+    const char *cmd[] = {"cycle", "aid", nullptr};
+    mpv_command_async(m_mpvHandle, 0, cmd);
+}
+
+void MpvPlayerItem::cycleSubtitleTrack() {
+    if (!m_mpvHandle) {
+        return;
+    }
+    const char *cmd[] = {"cycle", "sid", nullptr};
+    mpv_command_async(m_mpvHandle, 0, cmd);
+}
+
+void MpvPlayerItem::nextChapter() {
+    if (!m_mpvHandle) {
+        return;
+    }
+    const char *cmd[] = {"add", "chapter", "1", nullptr};
+    mpv_command_async(m_mpvHandle, 0, cmd);
+}
+
+void MpvPlayerItem::previousChapter() {
+    if (!m_mpvHandle) {
+        return;
+    }
+    const char *cmd[] = {"add", "chapter", "-1", nullptr};
+    mpv_command_async(m_mpvHandle, 0, cmd);
+}
+
+void MpvPlayerItem::markWatched(bool watched) {
+    if (m_source.isEmpty()) {
+        return;
+    }
+    database::PlaybackDatabase::instance().markWatched(m_source, watched);
+}
+
 void MpvPlayerItem::loadFile(const QString &filePath) {
     if (!m_mpvHandle || filePath.isEmpty()) {
         return;
     }
+
+    // Save previous file's progress before switching
+    saveCurrentProgress();
 
     QString cleanPath = filePath;
     if (cleanPath.startsWith(QLatin1String("file://"))) {
@@ -259,12 +417,14 @@ void MpvPlayerItem::togglePause() {
 }
 
 void MpvPlayerItem::stop() {
+    saveCurrentProgress();
     if (!m_mpvHandle) {
         return;
     }
     const char *cmd[] = {"stop", nullptr};
     mpv_command_async(m_mpvHandle, 0, cmd);
     m_hasMedia = false;
+    m_saveTimer.stop();
     emit hasMediaChanged(false);
 }
 
@@ -273,9 +433,10 @@ void MpvPlayerItem::seek(double seconds, bool relative) {
         return;
     }
     QByteArray secStr = QByteArray::number(seconds);
-    const char *mode = relative ? "relative" : "absolute";
+    const char *mode = relative ? "relative+exact" : "absolute+exact";
     const char *cmd[] = {"seek", secStr.constData(), mode, nullptr};
     mpv_command_async(m_mpvHandle, 0, cmd);
+    saveCurrentProgress();
 }
 
 void MpvPlayerItem::command(const QVariantList &args) {
@@ -295,6 +456,117 @@ void MpvPlayerItem::command(const QVariantList &args) {
     cargs.push_back(nullptr);
 
     mpv_command_async(m_mpvHandle, 0, cargs.data());
+}
+
+void MpvPlayerItem::saveCurrentProgress() {
+    if (m_source.isEmpty() || m_position <= 0.0 || m_duration <= 0.0) {
+        return;
+    }
+
+    database::PlaybackDatabase::instance().saveProgress(
+        m_source,
+        m_position,
+        m_duration,
+        m_currentAudioTrackId,
+        m_currentSubtitleTrackId,
+        m_currentAudioLang,
+        m_currentSubtitleLang
+    );
+    m_lastSavedPosition = m_position;
+}
+
+QString MpvPlayerItem::extractShowKey(const QString &filePath) const {
+    QFileInfo fi(filePath);
+    QDir parentDir = fi.dir();
+    QString dirName = parentDir.dirName();
+
+    // Check if immediate folder is a season folder, e.g. "Season 1"
+    if (dirName.startsWith(QLatin1String("Season"), Qt::CaseInsensitive) ||
+        dirName.startsWith(QLatin1String("Series"), Qt::CaseInsensitive) ||
+        dirName.startsWith(QLatin1String("Specials"), Qt::CaseInsensitive)) {
+        parentDir.cdUp();
+        return parentDir.dirName();
+    }
+    return dirName;
+}
+
+void MpvPlayerItem::parseTrackList(const QVariantList &tracks) {
+    QVariantList newAudio;
+    QVariantList newSubs;
+    int activeAudio = -1;
+    int activeSub = -1;
+    QString activeAudioLang;
+    QString activeSubLang;
+
+    for (const auto &trackVal : tracks) {
+        QVariantMap track = trackVal.toMap();
+        QString type = track.value(QStringLiteral("type")).toString();
+        int id = track.value(QStringLiteral("id")).toInt();
+        QString title = track.value(QStringLiteral("title")).toString();
+        QString lang = track.value(QStringLiteral("lang")).toString();
+        bool selected = track.value(QStringLiteral("selected")).toBool();
+
+        QString displayTitle = title.isEmpty() ? (lang.isEmpty() ? QStringLiteral("Track %1").arg(id) : lang.toUpper()) : title;
+
+        QVariantMap entry;
+        entry[QStringLiteral("id")] = id;
+        entry[QStringLiteral("title")] = displayTitle;
+        entry[QStringLiteral("lang")] = lang;
+        entry[QStringLiteral("selected")] = selected;
+
+        if (type == QLatin1String("audio")) {
+            newAudio.append(entry);
+            if (selected) {
+                activeAudio = id;
+                activeAudioLang = lang;
+            }
+        } else if (type == QLatin1String("sub")) {
+            newSubs.append(entry);
+            if (selected) {
+                activeSub = id;
+                activeSubLang = lang;
+            }
+        }
+    }
+
+    m_audioTracks = newAudio;
+    m_subtitleTracks = newSubs;
+    m_currentAudioTrackId = activeAudio;
+    m_currentSubtitleTrackId = activeSub;
+    m_currentAudioLang = activeAudioLang;
+    m_currentSubtitleLang = activeSubLang;
+
+    emit audioTracksChanged();
+    emit subtitleTracksChanged();
+    emit currentAudioTrackIdChanged(activeAudio);
+    emit currentSubtitleTrackIdChanged(activeSub);
+    emit currentAudioLanguageChanged(activeAudioLang);
+    emit currentSubtitleLanguageChanged(activeSubLang);
+}
+
+void MpvPlayerItem::parseChapterList(const QVariantList &chapterList) {
+    QVariantList list;
+    for (const auto &cVal : chapterList) {
+        QVariantMap cMap = cVal.toMap();
+        QVariantMap entry;
+        entry[QStringLiteral("title")] = cMap.value(QStringLiteral("title")).toString();
+        entry[QStringLiteral("time")] = cMap.value(QStringLiteral("time")).toDouble();
+        list.append(entry);
+    }
+    m_chapters = list;
+    emit chaptersChanged();
+}
+
+void MpvPlayerItem::parseDemuxerCache(const QVariantMap &cacheMap) {
+    if (m_duration <= 0.0) {
+        return;
+    }
+    // "reader-pts" or "cache-end" indicates how far ahead video is buffered
+    double cacheEnd = cacheMap.value(QStringLiteral("cache-end")).toDouble();
+    if (cacheEnd > 0.0) {
+        m_bufferPosition = cacheEnd;
+        emit bufferPositionChanged(m_bufferPosition);
+    }
 }
 
 void MpvPlayerItem::setPropertyInternal(const char *name, double value) {
@@ -420,16 +692,74 @@ void MpvPlayerItem::processMpvEvents() {
                         emit coreIdleChanged(m_coreIdle);
                     }
                 }
+            } else if (std::strcmp(prop->name, "chapter") == 0) {
+                if (prop->format == MPV_FORMAT_INT64) {
+                    int val = static_cast<int>(*static_cast<int64_t *>(prop->data));
+                    if (val != m_currentChapter) {
+                        m_currentChapter = val;
+                        emit currentChapterChanged(m_currentChapter);
+                    }
+                }
+            } else if (std::strcmp(prop->name, "track-list") == 0) {
+                if (prop->format == MPV_FORMAT_NODE) {
+                    QVariant v = mpvNodeToVariant(static_cast<mpv_node *>(prop->data));
+                    parseTrackList(v.toList());
+                }
+            } else if (std::strcmp(prop->name, "chapter-list") == 0) {
+                if (prop->format == MPV_FORMAT_NODE) {
+                    QVariant v = mpvNodeToVariant(static_cast<mpv_node *>(prop->data));
+                    parseChapterList(v.toList());
+                }
+            } else if (std::strcmp(prop->name, "demuxer-cache-state") == 0) {
+                if (prop->format == MPV_FORMAT_NODE) {
+                    QVariant v = mpvNodeToVariant(static_cast<mpv_node *>(prop->data));
+                    parseDemuxerCache(v.toMap());
+                }
             }
             break;
         }
         case MPV_EVENT_FILE_LOADED: {
             m_hasMedia = true;
+            m_saveTimer.start();
             emit hasMediaChanged(true);
             emit fileLoaded();
+
+            // Check saved progress from local database for auto-resume
+            if (!m_source.isEmpty()) {
+                QVariantMap progress = database::PlaybackDatabase::instance().getProgress(m_source);
+                if (!progress.isEmpty()) {
+                    double savedPos = progress.value(QStringLiteral("position")).toDouble();
+                    bool completed = progress.value(QStringLiteral("completed")).toBool();
+
+                    // If file was previously watched (> 5s) and not completed, resume with 2.5s context rewind
+                    if (savedPos > 5.0 && !completed) {
+                        double resumePos = std::max(0.0, savedPos - 2.5);
+                        seek(resumePos, false);
+                        emit resumed(resumePos, savedPos);
+                    }
+                }
+
+                // Apply per-show language preferences if present
+                const QString showKey = extractShowKey(m_source);
+                QVariantMap showPrefs = database::PlaybackDatabase::instance().getShowPreferences(showKey);
+                QString prefAudio = showPrefs.value(QStringLiteral("audioLang")).toString();
+                QString prefSub = showPrefs.value(QStringLiteral("subtitleLang")).toString();
+
+                if (!prefAudio.isEmpty()) {
+                    QByteArray prefAudioUtf8 = prefAudio.toUtf8();
+                    const char *cmd[] = {"set", "alang", prefAudioUtf8.constData(), nullptr};
+                    mpv_command_async(m_mpvHandle, 0, cmd);
+                }
+                if (!prefSub.isEmpty()) {
+                    QByteArray prefSubUtf8 = prefSub.toUtf8();
+                    const char *cmd[] = {"set", "slang", prefSubUtf8.constData(), nullptr};
+                    mpv_command_async(m_mpvHandle, 0, cmd);
+                }
+            }
             break;
         }
         case MPV_EVENT_END_FILE: {
+            saveCurrentProgress();
             emit playbackEnded();
             break;
         }
