@@ -1,0 +1,48 @@
+# Build and binary outputs
+build/
+bin/
+cmake-build-*/
+CMakeCache.txt
+CMakeFiles/
+Makefile
+*.cmake
+!CMakeLists.txt
+!cmake/*.cmake
+*.o
+*.a
+*.so
+*.dylib
+*.dll
+*.moc
+moc_*.cpp
+qrc_*.cpp
+ui_*.h
+
+# IDE and editor files
+.vscode/
+.idea/
+*.user
+*.user.*
+.cache/
+*.swp
+*.swo
+*~
+.directory
+
+# Local databases and runtime state
+*.sqlite
+*.sqlite3
+*.db
+*.db-shm
+*.db-wal
+*.log
+
+# Environment and secrets
+.env
+.env.*
+*.pem
+*.key
+
+# OS artifacts
+.DS_Store
+Thumbs.db
