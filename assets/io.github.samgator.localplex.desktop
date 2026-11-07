@@ -1,0 +1,13 @@
+[Desktop Entry]
+Name=localplex
+GenericName=Video Player & Media Library
+Comment=Fast, lightweight offline video library and player for files you already own
+Exec=localplex %U
+Icon=io.github.samgator.localplex
+Terminal=false
+Type=Application
+Categories=AudioVideo;Player;Video;Qt;
+MimeType=video/mp4;video/x-matroska;video/quicktime;video/webm;video/x-msvideo;video/avi;video/x-flv;video/mpeg;
+Keywords=video;player;movie;tv;media;offline;local;
+StartupWMClass=localplex
+PrefersNonDefaultGPU=true

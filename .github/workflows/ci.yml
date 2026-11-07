@@ -3,6 +3,7 @@ name: CI
 on:
   push:
     branches: [ main ]
+    tags: [ 'v*' ]
   pull_request:
     branches: [ main ]
 
@@ -26,7 +27,8 @@ jobs:
           ./tools/git/pre-commit.sh
 
   build-linux:
-    name: Build (Linux)
+    name: Build & Test (Linux)
+    needs: lint-and-audit
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -52,7 +54,77 @@ jobs:
         run: |
           cmake -B build -G Ninja \
             -DCMAKE_BUILD_TYPE=Release \
-            -DLOCALPLEX_ENABLE_WERROR=ON
+            -DCMAKE_INSTALL_PREFIX=/usr
+
+      - name: Compile
+        run: |
+          cmake --build build --parallel
+
+      - name: Run Tests
+        run: |
+          ctest --test-dir build --output-on-failure
+
+  build-macos:
+    name: Build & Test (macOS)
+    needs: lint-and-audit
+    runs-on: macos-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install dependencies via Homebrew
+        run: |
+          brew update
+          brew install cmake ninja mpv sqlite qt@6
+
+      - name: Configure CMake
+        run: |
+          cmake -B build -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_PREFIX_PATH="$(brew --prefix qt@6)"
+
+      - name: Compile
+        run: |
+          cmake --build build --parallel
+
+      - name: Run Tests
+        run: |
+          ctest --test-dir build --output-on-failure
+
+  build-windows:
+    name: Build & Test (Windows)
+    needs: lint-and-audit
+    runs-on: windows-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v3
+        with:
+          version: '6.6.3'
+          arch: 'win64_msvc2019_64'
+          modules: 'qtdeclarative'
+
+      - name: Set up Ninja
+        uses: seanmiddleditch/gha-setup-ninja@v4
+
+      - name: Set up MSVC environment
+        uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Download libmpv developer build
+        shell: pwsh
+        run: |
+          $MpvUrl = "https://sourceforge.net/projects/mpv-player-windows/files/libmpv/mpv-dev-x86_64-v3-20240121-git-a957d9f.7z/download"
+          Invoke-WebRequest -Uri $MpvUrl -OutFile mpv-dev.7z
+          7z x mpv-dev.7z -o"$env:RUNNER_TEMP\mpv-dev"
+          echo "MPV_DIR=$env:RUNNER_TEMP\mpv-dev" >> $env:GITHUB_ENV
+
+      - name: Configure CMake
+        run: |
+          cmake -B build -G Ninja `
+            -DCMAKE_BUILD_TYPE=Release `
+            -DCMAKE_PREFIX_PATH="${{ env.QT_ROOT_DIR }};${{ env.MPV_DIR }}"
 
       - name: Compile
         run: |

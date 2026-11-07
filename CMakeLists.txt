@@ -87,6 +87,27 @@ set_target_properties(localplex PROPERTIES
     OUTPUT_NAME "localplex"
 )
 
+# Installation targets
+include(GNUInstallDirs)
+
+install(TARGETS localplex
+    BUNDLE DESTINATION .
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+)
+
+install(FILES assets/io.github.samgator.localplex.desktop
+    DESTINATION ${CMAKE_INSTALL_DATADIR}/applications
+)
+
+install(FILES assets/io.github.samgator.localplex.metainfo.xml
+    DESTINATION ${CMAKE_INSTALL_DATADIR}/metainfo
+)
+
+install(FILES assets/icons/localplex.svg
+    DESTINATION ${CMAKE_INSTALL_DATADIR}/icons/hicolor/scalable/apps
+    RENAME io.github.samgator.localplex.svg
+)
+
 # Testing configuration
 enable_testing()
 add_test(NAME ColdStartBenchmark

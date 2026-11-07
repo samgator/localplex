@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#1c1f26"/>
+      <stop offset="100%" stop-color="#0c0e12"/>
+    </linearGradient>
+    <linearGradient id="amberGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f59e0b"/>
+      <stop offset="100%" stop-color="#d97736"/>
+    </linearGradient>
+    <linearGradient id="strokeGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#323846"/>
+      <stop offset="100%" stop-color="#1e222a"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Base Squircle -->
+  <rect x="24" y="24" width="464" height="464" rx="104" ry="104" fill="url(#bgGrad)" stroke="url(#strokeGrad)" stroke-width="8"/>
+
+  <!-- Geometric Film Frame / Viewport -->
+  <rect x="80" y="80" width="352" height="352" rx="48" fill="#12141a" stroke="#232733" stroke-width="4"/>
+
+  <!-- Cinematic Frame Perforations Top -->
+  <rect x="112" y="104" width="36" height="24" rx="6" fill="#1f2430"/>
+  <rect x="172" y="104" width="36" height="24" rx="6" fill="#1f2430"/>
+  <rect x="238" y="104" width="36" height="24" rx="6" fill="#1f2430"/>
+  <rect x="304" y="104" width="36" height="24" rx="6" fill="#1f2430"/>
+  <rect x="364" y="104" width="36" height="24" rx="6" fill="#1f2430"/>
+
+  <!-- Cinematic Frame Perforations Bottom -->
+  <rect x="112" y="384" width="36" height="24" rx="6" fill="#1f2430"/>
+  <rect x="172" y="384" width="36" height="24" rx="6" fill="#1f2430"/>
+  <rect x="238" y="384" width="36" height="24" rx="6" fill="#1f2430"/>
+  <rect x="304" y="384" width="36" height="24" rx="6" fill="#1f2430"/>
+  <rect x="364" y="384" width="36" height="24" rx="6" fill="#1f2430"/>
+
+  <!-- Center Screen Plate -->
+  <rect x="112" y="152" width="288" height="208" rx="16" fill="#090a0d" stroke="#232733" stroke-width="2"/>
+
+  <!-- Precision Amber Play Glyph -->
+  <path d="M 226 206 L 314 256 L 226 306 Z" fill="url(#amberGrad)" stroke="#b45309" stroke-width="2" stroke-linejoin="round"/>
+</svg>

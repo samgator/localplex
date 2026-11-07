@@ -91,8 +91,11 @@ Run the binary:
   - Accessibility & motion pass with reduced-motion toggling and contrast focus rings
   - Autoplay next episode with cancelable 10-second countdown
   - Graceful empty states and error recovery for missing/corrupt media
-- **Phase 5: Packaging & Release**
-  - Flatpak, AppImage, Windows portable zip, macOS bundle
+- **Phase 5: Packaging & Release** (Completed)
+  - Standalone packaging for Flatpak, AppImage, Windows portable zip/installer, and macOS DMG
+  - Standard XDG desktop entry and AppStream metainfo
+  - Multi-platform GitHub Actions CI matrix for Linux, macOS, and Windows
+  - Pull request template, contribution guides, and GPL-3.0-or-later license verification
 
 ---
 

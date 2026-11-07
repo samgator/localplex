@@ -14,10 +14,12 @@ This document describes the internal structure, threading model, and subsystem r
 - libmpv 0.35+ (`mpv-devel` or `libmpv-dev`)
 - SQLite 3.35+
 
-### Build and Run (Linux)
+### Build and Run
+
+#### Linux
 
 ```bash
-# 1. Install dependencies on Debian/Ubuntu derivatives:
+# 1. Install dependencies (Debian/Ubuntu):
 sudo apt-get install -y cmake ninja-build build-essential libmpv-dev libsqlite3-dev \
   qt6-base-dev qt6-declarative-dev qml6-module-qtquick qml6-module-qtquick-controls \
   qml6-module-qtquick-layouts qml6-module-qtquick-window
@@ -25,14 +27,27 @@ sudo apt-get install -y cmake ninja-build build-essential libmpv-dev libsqlite3-
 # On Arch Linux:
 sudo pacman -S --needed cmake ninja base-devel mpv sqlite qt6-base qt6-declarative qt6-quickcontrols2
 
-# 2. Configure build
+# 2. Build & Launch:
 cmake -B build -S . -DCMAKE_BUILD_TYPE=Debug
-
-# 3. Build executable
 cmake --build build -j$(nproc)
-
-# 4. Launch localplex
 ./build/localplex
+```
+
+#### macOS
+
+```bash
+brew install cmake ninja mpv sqlite qt@6
+cmake -B build -S . -DCMAKE_BUILD_TYPE=Debug -DCMAKE_PREFIX_PATH="$(brew --prefix qt@6)"
+cmake --build build -j$(sysctl -n hw.ncpu)
+./build/localplex
+```
+
+#### Windows
+
+```powershell
+cmake -B build -S . -DCMAKE_BUILD_TYPE=Debug -DCMAKE_PREFIX_PATH="C:\Qt\6.6.3\msvc2019_64;C:\mpv-dev"
+cmake --build build --config Debug
+.\build\Debug\localplex.exe
 ```
 
 ---

@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.github.samgator.localplex</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+  <name>localplex</name>
+  <summary>Fast, lightweight offline video library and player</summary>
+
+  <description>
+    <p>
+      localplex brings the visual polish and organization of modern streaming platforms to video files already stored on your machine. Running completely offline with zero telemetry, user accounts, or external network calls, localplex is designed around five core tenets: performance as the primary feature, never touching user media files, industrial media playback powered by libmpv, full offline privacy, and first-class Linux support.
+    </p>
+    <p>Features:</p>
+    <ul>
+      <li>Cold start interactive startup in under 500 ms and idle memory footprint under 150 MB RSS</li>
+      <li>Hardware-accelerated video decoding with instant frame seeking powered by libmpv OpenGL render API</li>
+      <li>Virtualized poster catalog with smooth display-refresh scrolling (60/120Hz)</li>
+      <li>Automated background directory indexing with non-blocking worker threads and downscaled thumbnail caching</li>
+      <li>Smart filename heuristic parsing for TV shows, seasons, episodes, and feature films</li>
+      <li>Local-first metadata companion sidecar support (.nfo XML parsing)</li>
+      <li>Rule 4 compliant fix-up UI to correct titles, merge/split shows, or renumber episodes purely in SQLite</li>
+      <li>Continue Watching shelf with Next Up sequencing and automatic progress tracking with 2.5-second context rewind resume</li>
+      <li>Token-based JSON theme engine shipping with five distinct presets (Criterion, Nordic Noir, Monochrome Archive, Janus Sepia, Solarized Dark) and live-reload custom theme dev mode</li>
+      <li>Accessibility and motion pass with OS reduced-motion detection, contrast focus rings, and full keyboard navigation</li>
+    </ul>
+  </description>
+
+  <launchable type="desktop-id">io.github.samgator.localplex.desktop</launchable>
+
+  <url type="homepage">https://github.com/samgator/localplex</url>
+  <url type="bugtracker">https://github.com/samgator/localplex/issues</url>
+
+  <provides>
+    <binary>localplex</binary>
+    <mediatype>video/mp4</mediatype>
+    <mediatype>video/x-matroska</mediatype>
+    <mediatype>video/quicktime</mediatype>
+    <mediatype>video/webm</mediatype>
+    <mediatype>video/x-msvideo</mediatype>
+  </provides>
+
+  <content_rating type="oars-1.1"/>
+
+  <releases>
+    <release version="0.1.0" date="2026-11-06">
+      <description>
+        <p>Initial release of localplex featuring embedded libmpv playback, SQLite library storage, multi-folder indexing, NFO parsing, metadata fix-up view, and token-based theme engine.</p>
+      </description>
+    </release>
+  </releases>
+</component>

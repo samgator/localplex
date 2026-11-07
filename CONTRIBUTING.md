@@ -24,15 +24,53 @@ Before submitting code or proposing changes, please keep these non-negotiable pr
 
 ### Building
 
+#### Linux (Debian / Ubuntu / Fedora / Arch)
+
 ```bash
+# Debian / Ubuntu:
+sudo apt-get install -y cmake ninja-build build-essential libmpv-dev libsqlite3-dev \
+  qt6-base-dev qt6-declarative-dev qml6-module-qtquick qml6-module-qtquick-controls \
+  qml6-module-qtquick-layouts qml6-module-qtquick-window
+
+# Arch Linux:
+sudo pacman -S --needed cmake ninja base-devel mpv sqlite qt6-base qt6-declarative qt6-quickcontrols2
+
+# Build & Run:
 cmake -B build -S . -DCMAKE_BUILD_TYPE=Debug
 cmake --build build -j$(nproc)
+./build/localplex
 ```
 
-Run the executable:
+#### macOS (Apple Silicon / Intel)
 
 ```bash
+brew install cmake ninja mpv sqlite qt@6
+cmake -B build -S . -DCMAKE_BUILD_TYPE=Debug -DCMAKE_PREFIX_PATH="$(brew --prefix qt@6)"
+cmake --build build -j$(sysctl -n hw.ncpu)
 ./build/localplex
+```
+
+#### Windows 10 / 11 (MSVC 2019+)
+
+```powershell
+cmake -B build -S . -DCMAKE_BUILD_TYPE=Debug -DCMAKE_PREFIX_PATH="C:\Qt\6.6.3\msvc2019_64;C:\mpv-dev"
+cmake --build build --config Debug
+.\build\Debug\localplex.exe
+```
+
+### Running Tests and Performance Budgets
+
+Every change must pass the automated test suite and conform to performance budgets:
+
+```bash
+# Run unit tests:
+ctest --test-dir build --output-on-failure
+
+# Verify performance budgets:
+python3 tools/bench/cold_start.py      # Cold start < 500 ms
+python3 tools/bench/memory_bench.py    # Idle RSS < 150 MB
+python3 tools/bench/playback_bench.py  # Playback start < 300 ms, instant seek
+python3 tools/bench/library_bench.py   # 5k-item catalog < 15 ms
 ```
 
 ### Git and Commit Hygiene

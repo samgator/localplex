@@ -4,9 +4,20 @@ All notable changes to `localplex` will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.1.0] - 2026-11-06
 
 ### Added
+- **Phase 5: Packaging & Release**
+  - Standalone multi-platform packaging configurations:
+    - Flathub-ready Flatpak manifest (`packaging/flatpak/io.github.samgator.localplex.yml`).
+    - Automated AppImage build recipe (`packaging/appimage/build-appimage.sh`) utilizing `linuxdeploy` and `linuxdeploy-plugin-qt`.
+    - Windows packaging script (`packaging/windows/build-windows.ps1`) and NSIS installer definition (`packaging/windows/installer.nsi`) generating both portable `.zip` and setup executables.
+    - macOS universal bundle and DMG script (`packaging/macos/package-macos.sh`, `Info.plist.in`).
+  - XDG desktop entry (`assets/io.github.samgator.localplex.desktop`) and Freedesktop AppStream metainfo (`assets/io.github.samgator.localplex.metainfo.xml`).
+  - Standard CMake installation targets with `GNUInstallDirs` for binary, desktop entry, metainfo, and scalable application icon.
+  - Multi-platform GitHub Actions CI matrix testing Linux, macOS, and Windows with Gitleaks security verification.
+  - Open source community templates: pull request template (`.github/PULL_REQUEST_TEMPLATE.md`), updated `CONTRIBUTING.md` with 10-minute setup across all three platforms, and issue templates.
+
 - **Phase 4: Themes & Polish**
   - Token-based theme engine (`src/core/theme_manager.h`, `theme_manager.cpp`) exposing dynamic bindings for color, typography, geometry, and motion tokens with zero performance degradation.
   - 5 distinct, named bundled theme presets (`assets/themes/`): Criterion (default warm cinematic dark), Nordic Noir (arctic slate & cyan), Monochrome Archive (pure OLED black & silver), Janus Sepia (espresso & vintage brass), and Solarized Dark (precision Ethan Schoonover palette).

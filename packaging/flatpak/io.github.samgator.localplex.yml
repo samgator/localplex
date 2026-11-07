@@ -1,0 +1,48 @@
+app-id: io.github.samgator.localplex
+runtime: org.kde.Platform
+runtime-version: '6.6'
+sdk: org.kde.Sdk
+command: localplex
+
+finish-args:
+  - --share=ipc
+  - --socket=fallback-x11
+  - --socket=wayland
+  - --device=dri
+  - --socket=pulseaudio
+  - --filesystem=host:ro
+  - --filesystem=xdg-videos:ro
+  - --filesystem=xdg-data/localplex:create
+
+modules:
+  - name: libass
+    cleanup:
+      - /bin
+      - /include
+      - /lib/pkgconfig
+    sources:
+      - type: archive
+        url: https://github.com/libass/libass/releases/download/0.17.1/libass-0.17.1.tar.xz
+        sha256: f0da0bbfba9d3e16c9117124b66a7078026b484c7fa9b24f33950d8b30d440a2
+
+  - name: mpv
+    buildsystem: meson
+    config-opts:
+      - -Dlibmpv=true
+      - -Dcplayer=false
+      - -Dmanpage-build=disabled
+    cleanup:
+      - /include
+      - /lib/pkgconfig
+    sources:
+      - type: archive
+        url: https://github.com/mpv-player/mpv/archive/v0.37.0.tar.gz
+        sha256: 1d2d4adbaf048a2ef860b9c611aa607428e3ec04d7d1a7f665e843d573cb123f
+
+  - name: localplex
+    buildsystem: cmake-ninja
+    config-opts:
+      - -DCMAKE_BUILD_TYPE=Release
+    sources:
+      - type: dir
+        path: ../..
