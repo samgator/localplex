@@ -17,7 +17,7 @@ ApplicationWindow {
     height: 740
     minimumWidth: 860
     minimumHeight: 540
-    color: "#090a0d"
+    color: themeManager.backgroundDeep
     visible: true
 
     FontLoader {
@@ -38,6 +38,50 @@ ApplicationWindow {
     property bool hudVisible: true
     property int hudHideDelay: 2800
     property string initialFilePath: ""
+
+    // Autoplay Next Episode state
+    property var autoplayCandidate: null
+    property int autoplayCountdown: 10
+    property bool autoplayActive: false
+    property bool autoplayDismissed: false
+
+    function triggerAutoplay() {
+        if (!player.hasMedia || player.duration <= 20.0 || autoplayActive || autoplayDismissed) return
+        var nextEp = libraryDatabase.getNextEpisode(player.filePath)
+        if (nextEp && nextEp.filePath) {
+            autoplayCandidate = nextEp
+            autoplayCountdown = 10
+            autoplayActive = true
+            pokeHud()
+        }
+    }
+
+    function cancelAutoplay() {
+        autoplayActive = false
+        autoplayDismissed = true
+        showToast("Autoplay canceled")
+    }
+
+    function playNextEpisodeNow() {
+        autoplayActive = false
+        if (autoplayCandidate && autoplayCandidate.filePath) {
+            playFile(autoplayCandidate.filePath)
+        }
+    }
+
+    Timer {
+        id: autoplayTimer
+        interval: 1000
+        repeat: true
+        running: root.autoplayActive
+        onTriggered: {
+            if (root.autoplayCountdown > 1) {
+                root.autoplayCountdown--
+            } else {
+                root.playNextEpisodeNow()
+            }
+        }
+    }
 
     // Toast state
     property string toastText: ""
@@ -62,7 +106,7 @@ ApplicationWindow {
         repeat: false
         onTriggered: {
             if (activeView === "player" && player.hasMedia && !player.paused &&
-                !audioPopup.opened && !subPopup.opened && !speedPopup.opened) {
+                !audioPopup.opened && !subPopup.opened && !speedPopup.opened && !themePopup.opened && !root.autoplayActive) {
                 root.hudVisible = false
             }
         }
@@ -89,6 +133,9 @@ ApplicationWindow {
     }
 
     function playFile(filePath) {
+        autoplayActive = false
+        autoplayDismissed = false
+        autoplayCandidate = null
         player.loadFile(filePath)
         activeView = "player"
         pokeHud()
@@ -113,6 +160,11 @@ ApplicationWindow {
 
     function handleAction(action) {
         if (!action) return false
+
+        if (autoplayActive && (action === "back_or_exit_fullscreen" || action === "play_pause")) {
+            cancelAutoplay()
+            return true
+        }
 
         pokeHud()
         if (action === "play_pause") {
@@ -216,9 +268,9 @@ ApplicationWindow {
         anchors.left: parent.left
         anchors.right: parent.right
         height: 54
-        color: "#12141a"
-        border.color: "#232733"
-        border.width: 1
+        color: themeManager.surfaceElevated
+        border.color: themeManager.borderDivider
+        border.width: themeManager.borderWidth
         z: 10
         visible: activeView !== "player" || root.hudVisible
 
@@ -236,8 +288,8 @@ ApplicationWindow {
                     Layout.preferredWidth: 32
                     Layout.preferredHeight: 32
                     background: Rectangle {
-                        color: parent.hovered ? "#1c1f26" : "transparent"
-                        radius: 4
+                        color: parent.hovered ? themeManager.surfaceCard : "transparent"
+                        radius: themeManager.radiusSmall
                     }
                     contentItem: Image {
                         source: "qrc:/assets/icons/arrow-left.svg"
@@ -256,7 +308,7 @@ ApplicationWindow {
 
                 Text {
                     text: "localplex"
-                    color: "#9aa0ac"
+                    color: themeManager.textSecondary
                     font.pixelSize: 13
                     font.weight: Font.DemiBold
                     font.letterSpacing: 1.2
@@ -266,7 +318,7 @@ ApplicationWindow {
             Rectangle {
                 width: 1
                 height: 16
-                color: "#232733"
+                color: themeManager.borderDivider
                 visible: activeView === "library"
             }
 
@@ -285,14 +337,14 @@ ApplicationWindow {
                         text: modelData.label
                         Layout.preferredHeight: 28
                         background: Rectangle {
-                            color: catalogModel.section === modelData.key ? "#1c1f26" : "transparent"
-                            border.color: catalogModel.section === modelData.key ? "#232733" : "transparent"
-                            border.width: 1
-                            radius: 4
+                            color: catalogModel.section === modelData.key ? themeManager.surfaceCard : "transparent"
+                            border.color: catalogModel.section === modelData.key ? themeManager.borderDivider : "transparent"
+                            border.width: themeManager.borderWidth
+                            radius: themeManager.radiusSmall
                         }
                         contentItem: Text {
                             text: parent.text
-                            color: catalogModel.section === modelData.key ? "#e6e8ec" : "#9aa0ac"
+                            color: catalogModel.section === modelData.key ? themeManager.textPrimary : themeManager.textSecondary
                             font.pixelSize: 12
                             font.weight: catalogModel.section === modelData.key ? Font.DemiBold : Font.Normal
                             horizontalAlignment: Text.AlignHCenter
@@ -311,10 +363,10 @@ ApplicationWindow {
                 visible: activeView === "library"
                 Layout.preferredWidth: 200
                 Layout.preferredHeight: 30
-                color: "#090a0d"
-                border.color: searchInput.activeFocus ? "#f3f4f6" : "#232733"
-                border.width: 1
-                radius: 4
+                color: themeManager.backgroundDeep
+                border.color: searchInput.activeFocus ? themeManager.focusRing : themeManager.borderDivider
+                border.width: searchInput.activeFocus ? 2 : themeManager.borderWidth
+                radius: themeManager.radiusSmall
 
                 RowLayout {
                     anchors.fill: parent
@@ -332,14 +384,14 @@ ApplicationWindow {
                     TextInput {
                         id: searchInput
                         Layout.fillWidth: true
-                        color: "#e6e8ec"
+                        color: themeManager.textPrimary
                         font.pixelSize: 12
                         clip: true
                         onTextChanged: catalogModel.searchQuery = text
 
                         Text {
                             text: "Search library..."
-                            color: "#5c6370"
+                            color: themeManager.textDim
                             font.pixelSize: 12
                             visible: !searchInput.text && !searchInput.activeFocus
                             anchors.verticalCenter: parent.verticalCenter
@@ -354,14 +406,14 @@ ApplicationWindow {
                 text: catalogModel.filter === "unwatched" ? "Unwatched only" : "Filter"
                 Layout.preferredHeight: 30
                 background: Rectangle {
-                    color: catalogModel.filter === "unwatched" ? "#d97736" : (parent.hovered ? "#1c1f26" : "transparent")
-                    border.color: catalogModel.filter === "unwatched" ? "#d97736" : "#232733"
-                    border.width: 1
-                    radius: 4
+                    color: catalogModel.filter === "unwatched" ? themeManager.accent : (parent.hovered ? themeManager.surfaceCard : "transparent")
+                    border.color: catalogModel.filter === "unwatched" ? themeManager.accent : themeManager.borderDivider
+                    border.width: themeManager.borderWidth
+                    radius: themeManager.radiusSmall
                 }
                 contentItem: Text {
                     text: parent.text
-                    color: catalogModel.filter === "unwatched" ? "#090a0d" : "#e6e8ec"
+                    color: catalogModel.filter === "unwatched" ? "#ffffff" : themeManager.textPrimary
                     font.pixelSize: 12
                     font.weight: Font.Medium
                     horizontalAlignment: Text.AlignHCenter
@@ -377,10 +429,10 @@ ApplicationWindow {
                 visible: activeView === "library" || activeView === "fixup"
                 Layout.preferredHeight: 30
                 background: Rectangle {
-                    color: parent.hovered ? "#1c1f26" : "#12141a"
-                    border.color: "#232733"
-                    border.width: 1
-                    radius: 4
+                    color: parent.hovered ? themeManager.surfaceCard : themeManager.surfaceElevated
+                    border.color: themeManager.borderDivider
+                    border.width: themeManager.borderWidth
+                    radius: themeManager.radiusSmall
                 }
                 contentItem: RowLayout {
                     spacing: 6
@@ -392,7 +444,7 @@ ApplicationWindow {
                     }
                     Text {
                         text: "Add folder"
-                        color: "#e6e8ec"
+                        color: themeManager.textPrimary
                         font.pixelSize: 12
                         font.weight: Font.Medium
                     }
@@ -405,10 +457,10 @@ ApplicationWindow {
                 visible: activeView === "library" || activeView === "fixup"
                 Layout.preferredHeight: 30
                 background: Rectangle {
-                    color: activeView === "fixup" ? "#2563eb" : (parent.hovered ? "#1c1f26" : "#12141a")
-                    border.color: activeView === "fixup" ? "#3b82f6" : "#232733"
-                    border.width: 1
-                    radius: 4
+                    color: activeView === "fixup" ? themeManager.surfaceCard : (parent.hovered ? themeManager.surfaceCard : themeManager.surfaceElevated)
+                    border.color: activeView === "fixup" ? themeManager.accent : themeManager.borderDivider
+                    border.width: themeManager.borderWidth
+                    radius: themeManager.radiusSmall
                 }
                 contentItem: RowLayout {
                     spacing: 6
@@ -420,7 +472,7 @@ ApplicationWindow {
                     }
                     Text {
                         text: "Fix-up"
-                        color: "#ffffff"
+                        color: activeView === "fixup" ? themeManager.accent : themeManager.textPrimary
                         font.pixelSize: 12
                         font.weight: Font.Medium
                     }
@@ -429,6 +481,41 @@ ApplicationWindow {
                     activeView = (activeView === "fixup" ? "library" : "fixup")
                     if (activeView === "fixup" && fixupLoader.item) {
                         fixupLoader.item.reloadData()
+                    }
+                }
+            }
+
+            // Theme Switcher Button
+            Button {
+                id: themeBtn
+                visible: activeView === "library" || activeView === "fixup"
+                Layout.preferredHeight: 30
+                background: Rectangle {
+                    color: themePopup.opened ? themeManager.surfaceCard : (parent.hovered ? themeManager.surfaceCard : themeManager.surfaceElevated)
+                    border.color: themePopup.opened ? themeManager.accent : themeManager.borderDivider
+                    border.width: themeManager.borderWidth
+                    radius: themeManager.radiusSmall
+                }
+                contentItem: RowLayout {
+                    spacing: 6
+                    anchors.centerIn: parent
+                    Image {
+                        source: "qrc:/assets/icons/palette.svg"
+                        sourceSize.width: 14
+                        sourceSize.height: 14
+                    }
+                    Text {
+                        text: "Theme"
+                        color: themeManager.textPrimary
+                        font.pixelSize: 12
+                        font.weight: Font.Medium
+                    }
+                }
+                onClicked: {
+                    if (themePopup.opened) {
+                        themePopup.close()
+                    } else {
+                        themePopup.open()
                     }
                 }
             }
@@ -442,9 +529,9 @@ ApplicationWindow {
         anchors.left: parent.left
         anchors.right: parent.right
         height: 28
-        color: "#191c24"
-        border.color: "#232733"
-        border.width: 1
+        color: themeManager.surfaceCard
+        border.color: themeManager.borderDivider
+        border.width: themeManager.borderWidth
         visible: libraryScanner.isScanning && activeView !== "player"
         z: 9
 
@@ -456,7 +543,7 @@ ApplicationWindow {
 
             Text {
                 text: libraryScanner.statusMessage
-                color: "#e6e8ec"
+                color: themeManager.textPrimary
                 font.pixelSize: 11
                 Layout.fillWidth: true
                 elide: Text.ElideRight
@@ -464,7 +551,7 @@ ApplicationWindow {
 
             Text {
                 text: libraryScanner.progressPercent + "%"
-                color: "#d97736"
+                color: themeManager.accent
                 font.pixelSize: 11
                 font.features: { "tnum": 1 }
             }
@@ -487,11 +574,11 @@ ApplicationWindow {
 
             Item { Layout.preferredHeight: 4 }
 
-            // Empty Library Placeholder
+            // Empty Library / Search Placeholder
             Rectangle {
                 visible: catalogModel.count === 0 && !libraryScanner.isScanning
                 Layout.alignment: Qt.AlignHCenter
-                Layout.preferredWidth: 420
+                Layout.preferredWidth: 440
                 Layout.preferredHeight: 260
                 color: "transparent"
 
@@ -500,45 +587,54 @@ ApplicationWindow {
                     spacing: 16
 
                     Text {
-                        text: "No media folders connected"
-                        color: "#e6e8ec"
+                        text: catalogModel.searchQuery !== "" ? "No matches found." : "No media folders connected."
+                        color: themeManager.textPrimary
                         font.pixelSize: 20
                         font.weight: Font.DemiBold
                         Layout.alignment: Qt.AlignHCenter
                     }
 
                     Text {
-                        text: "Add a folder containing movies or shows to begin building your offline catalog."
-                        color: "#9aa0ac"
+                        text: catalogModel.searchQuery !== "" ?
+                            ("No files in your library match \"" + catalogModel.searchQuery + "\". Check the spelling or search by show title.") :
+                            "Add a folder containing your movies or television shows to begin."
+                        color: themeManager.textSecondary
                         font.pixelSize: 13
                         wrapMode: Text.WordWrap
                         horizontalAlignment: Text.AlignHCenter
-                        Layout.preferredWidth: 360
+                        Layout.preferredWidth: 380
                         Layout.alignment: Qt.AlignHCenter
                     }
 
                     Item { Layout.preferredHeight: 8 }
 
                     Button {
-                        text: "Add folder"
+                        text: catalogModel.searchQuery !== "" ? "Clear search" : "Add folder"
                         Layout.alignment: Qt.AlignHCenter
                         background: Rectangle {
                             implicitWidth: 130
                             implicitHeight: 36
-                            color: parent.down ? "#222631" : (parent.hovered ? "#191c24" : "#12141a")
-                            border.color: "#232733"
-                            border.width: 1
-                            radius: 4
+                            color: parent.down ? themeManager.surfacePopover : (parent.hovered ? themeManager.surfaceCard : themeManager.surfaceElevated)
+                            border.color: themeManager.borderDivider
+                            border.width: themeManager.borderWidth
+                            radius: themeManager.radiusSmall
                         }
                         contentItem: Text {
                             text: parent.text
-                            color: "#e6e8ec"
+                            color: themeManager.textPrimary
                             font.pixelSize: 13
                             font.weight: Font.Medium
                             horizontalAlignment: Text.AlignHCenter
                             verticalAlignment: Text.AlignVCenter
                         }
-                        onClicked: folderDialog.open()
+                        onClicked: {
+                            if (catalogModel.searchQuery !== "") {
+                                catalogModel.searchQuery = ""
+                                searchInput.text = ""
+                            } else {
+                                folderDialog.open()
+                            }
+                        }
                     }
                 }
             }
@@ -553,7 +649,7 @@ ApplicationWindow {
 
                 Text {
                     text: "CONTINUE WATCHING"
-                    color: "#9aa0ac"
+                    color: themeManager.textSecondary
                     font.pixelSize: 11
                     font.weight: Font.DemiBold
                     font.letterSpacing: 1.0
@@ -571,10 +667,10 @@ ApplicationWindow {
                     delegate: Rectangle {
                         width: 240
                         height: 170
-                        color: "#12141a"
-                        border.color: mouseAreaShelf.containsMouse ? "#d97736" : "#232733"
-                        border.width: 1
-                        radius: 4
+                        color: themeManager.surfaceCard
+                        border.color: mouseAreaShelf.containsMouse ? themeManager.accent : themeManager.borderDivider
+                        border.width: themeManager.borderWidth
+                        radius: themeManager.radiusSmall
 
                         ColumnLayout {
                             anchors.fill: parent
@@ -595,7 +691,7 @@ ApplicationWindow {
 
                                 Rectangle {
                                     anchors.fill: parent
-                                    color: "#191c24"
+                                    color: themeManager.surfaceElevated
                                     visible: !model.thumbnailPath
 
                                     Image {
@@ -614,15 +710,15 @@ ApplicationWindow {
                                     anchors.margins: 8
                                     height: 18
                                     width: badgeText.implicitWidth + 10
-                                    color: "#090a0d"
-                                    radius: 2
+                                    color: themeManager.backgroundDeep
+                                    radius: themeManager.radiusSmall
                                     opacity: 0.9
 
                                     Text {
                                         id: badgeText
                                         anchors.centerIn: parent
                                         text: model.shelfType === "next_up" ? "NEXT UP" : "RESUME"
-                                        color: model.shelfType === "next_up" ? "#d97736" : "#e6e8ec"
+                                        color: model.shelfType === "next_up" ? themeManager.accent : themeManager.textPrimary
                                         font.pixelSize: 9
                                         font.weight: Font.DemiBold
                                         font.letterSpacing: 0.5
@@ -635,7 +731,7 @@ ApplicationWindow {
                                     anchors.left: parent.left
                                     anchors.right: parent.right
                                     height: 3
-                                    color: "#232733"
+                                    color: themeManager.borderDivider
                                     visible: model.duration > 0 && model.position > 0
 
                                     Rectangle {
@@ -643,7 +739,7 @@ ApplicationWindow {
                                         anchors.top: parent.top
                                         anchors.bottom: parent.bottom
                                         width: parent.width * Math.min(1.0, (model.position / model.duration))
-                                        color: "#d97736"
+                                        color: themeManager.accent
                                     }
                                 }
                             }
@@ -656,7 +752,7 @@ ApplicationWindow {
 
                                 Text {
                                     text: model.title
-                                    color: "#e6e8ec"
+                                    color: themeManager.textPrimary
                                     font.pixelSize: 12
                                     font.weight: Font.Medium
                                     elide: Text.ElideRight
@@ -665,7 +761,7 @@ ApplicationWindow {
 
                                 Text {
                                     text: model.subtitle
-                                    color: "#9aa0ac"
+                                    color: themeManager.textSecondary
                                     font.pixelSize: 11
                                     elide: Text.ElideRight
                                     Layout.fillWidth: true
@@ -694,7 +790,7 @@ ApplicationWindow {
 
                 Text {
                     text: catalogModel.section === "shows" ? "TELEVISION SHOWS" : (catalogModel.section === "movies" ? "FEATURE FILMS" : "CATALOG")
-                    color: "#9aa0ac"
+                    color: themeManager.textSecondary
                     font.pixelSize: 11
                     font.weight: Font.DemiBold
                     font.letterSpacing: 1.0
@@ -717,10 +813,10 @@ ApplicationWindow {
                         Rectangle {
                             anchors.fill: parent
                             anchors.margins: 8
-                            color: "#12141a"
-                            border.color: mouseAreaCard.containsMouse ? "#d97736" : "#232733"
-                            border.width: 1
-                            radius: 4
+                            color: themeManager.surfaceCard
+                            border.color: mouseAreaCard.containsMouse ? themeManager.accent : themeManager.borderDivider
+                            border.width: themeManager.borderWidth
+                            radius: themeManager.radiusSmall
 
                             ColumnLayout {
                                 anchors.fill: parent
@@ -742,7 +838,7 @@ ApplicationWindow {
                                     // Typographic Poster Fallback
                                     Rectangle {
                                         anchors.fill: parent
-                                        color: "#191c24"
+                                        color: themeManager.surfaceElevated
                                         visible: !model.posterPath
 
                                         ColumnLayout {
@@ -752,7 +848,7 @@ ApplicationWindow {
 
                                             Text {
                                                 text: model.title
-                                                color: "#e6e8ec"
+                                                color: themeManager.textPrimary
                                                 font.pixelSize: 14
                                                 font.weight: Font.DemiBold
                                                 wrapMode: Text.WordWrap
@@ -764,7 +860,7 @@ ApplicationWindow {
 
                                             Text {
                                                 text: model.year > 0 ? model.year : ""
-                                                color: "#9aa0ac"
+                                                color: themeManager.textSecondary
                                                 font.pixelSize: 11
                                                 Layout.alignment: Qt.AlignHCenter
                                             }
@@ -779,15 +875,15 @@ ApplicationWindow {
                                         anchors.margins: 6
                                         height: 18
                                         width: unwatchedBadgeText.implicitWidth + 10
-                                        color: "#090a0d"
-                                        radius: 2
+                                        color: themeManager.backgroundDeep
+                                        radius: themeManager.radiusSmall
                                         opacity: 0.9
 
                                         Text {
                                             id: unwatchedBadgeText
                                             anchors.centerIn: parent
                                             text: model.unwatchedCount + " NEW"
-                                            color: "#d97736"
+                                            color: themeManager.accent
                                             font.pixelSize: 9
                                             font.weight: Font.DemiBold
                                             font.letterSpacing: 0.5
@@ -803,7 +899,7 @@ ApplicationWindow {
 
                                     Text {
                                         text: model.title
-                                        color: "#e6e8ec"
+                                        color: themeManager.textPrimary
                                         font.pixelSize: 12
                                         font.weight: Font.Medium
                                         elide: Text.ElideRight
@@ -812,7 +908,7 @@ ApplicationWindow {
 
                                     Text {
                                         text: model.subtitle
-                                        color: "#9aa0ac"
+                                        color: themeManager.textSecondary
                                         font.pixelSize: 11
                                         elide: Text.ElideRight
                                         Layout.fillWidth: true
@@ -867,10 +963,10 @@ ApplicationWindow {
                 Rectangle {
                     width: 140
                     height: 210
-                    color: "#191c24"
-                    border.color: "#232733"
-                    border.width: 1
-                    radius: 4
+                    color: themeManager.surfaceElevated
+                    border.color: themeManager.borderDivider
+                    border.width: themeManager.borderWidth
+                    radius: themeManager.radiusSmall
 
                     Image {
                         source: "qrc:/assets/icons/play.svg"
@@ -887,14 +983,14 @@ ApplicationWindow {
 
                     Text {
                         text: root.selectedShowTitle
-                        color: "#e6e8ec"
+                        color: themeManager.textPrimary
                         font.pixelSize: 26
                         font.weight: Font.DemiBold
                     }
 
                     Text {
                         text: root.selectedShowSeasons.length + " Season(s) · " + root.selectedShowEpisodes.length + " Episode(s)"
-                        color: "#9aa0ac"
+                        color: themeManager.textSecondary
                         font.pixelSize: 13
                     }
                 }
@@ -908,16 +1004,16 @@ ApplicationWindow {
                     Button {
                         text: "Season " + modelData
                         background: Rectangle {
-                            color: root.selectedSeasonNumber === modelData ? "#d97736" : (parent.hovered ? "#1c1f26" : "#12141a")
-                            border.color: root.selectedSeasonNumber === modelData ? "#d97736" : "#232733"
-                            border.width: 1
-                            radius: 4
+                            color: root.selectedSeasonNumber === modelData ? themeManager.accent : (parent.hovered ? themeManager.surfacePopover : themeManager.surfaceCard)
+                            border.color: root.selectedSeasonNumber === modelData ? themeManager.accent : themeManager.borderDivider
+                            border.width: themeManager.borderWidth
+                            radius: themeManager.radiusSmall
                             implicitHeight: 32
                             implicitWidth: 100
                         }
                         contentItem: Text {
                             text: parent.text
-                            color: root.selectedSeasonNumber === modelData ? "#090a0d" : "#e6e8ec"
+                            color: root.selectedSeasonNumber === modelData ? "#ffffff" : themeManager.textPrimary
                             font.pixelSize: 12
                             font.weight: Font.Medium
                             horizontalAlignment: Text.AlignHCenter
@@ -938,10 +1034,10 @@ ApplicationWindow {
                     Rectangle {
                         Layout.fillWidth: true
                         Layout.preferredHeight: 56
-                        color: epArea.containsMouse ? "#1c1f26" : "#12141a"
-                        border.color: "#232733"
-                        border.width: 1
-                        radius: 4
+                        color: epArea.containsMouse ? themeManager.surfacePopover : themeManager.surfaceCard
+                        border.color: themeManager.borderDivider
+                        border.width: themeManager.borderWidth
+                        radius: themeManager.radiusSmall
 
                         RowLayout {
                             anchors.fill: parent
@@ -951,7 +1047,7 @@ ApplicationWindow {
 
                             Text {
                                 text: modelData.episodeNumber < 10 ? "0" + modelData.episodeNumber : "" + modelData.episodeNumber
-                                color: "#9aa0ac"
+                                color: themeManager.textSecondary
                                 font.pixelSize: 14
                                 font.weight: Font.DemiBold
                                 font.features: { "tnum": 1 }
@@ -964,14 +1060,14 @@ ApplicationWindow {
 
                                 Text {
                                     text: modelData.itemTitle
-                                    color: "#e6e8ec"
+                                    color: themeManager.textPrimary
                                     font.pixelSize: 13
                                     font.weight: Font.Medium
                                 }
 
                                 Text {
                                     text: modelData.completed ? "Watched" : (modelData.position > 10 ? "Resume from " + root.formatTime(modelData.position) : "Unwatched")
-                                    color: modelData.completed ? "#9aa0ac" : (modelData.position > 10 ? "#d97736" : "#5c6370")
+                                    color: modelData.completed ? themeManager.textDim : (modelData.position > 10 ? themeManager.accent : themeManager.textSecondary)
                                     font.pixelSize: 11
                                 }
                             }
@@ -980,15 +1076,15 @@ ApplicationWindow {
                                 text: "Play"
                                 Layout.preferredHeight: 28
                                 background: Rectangle {
-                                    color: parent.hovered ? "#d97736" : "transparent"
-                                    border.color: "#232733"
-                                    border.width: 1
-                                    radius: 4
+                                    color: parent.hovered ? themeManager.accent : "transparent"
+                                    border.color: themeManager.borderDivider
+                                    border.width: themeManager.borderWidth
+                                    radius: themeManager.radiusSmall
                                     implicitWidth: 64
                                 }
                                 contentItem: Text {
                                     text: parent.text
-                                    color: parent.hovered ? "#090a0d" : "#e6e8ec"
+                                    color: parent.hovered ? "#ffffff" : themeManager.textPrimary
                                     font.pixelSize: 12
                                     font.weight: Font.Medium
                                     horizontalAlignment: Text.AlignHCenter
@@ -1045,6 +1141,110 @@ ApplicationWindow {
             onResumed: function(resumePos, origPos) {
                 root.showToast("Resumed at " + root.formatTime(resumePos) + " (rewound 2.5s for context)")
             }
+            onPlaybackError: function(msg) {
+                root.showToast(msg)
+            }
+            onPositionChanged: function(pos) {
+                if (!root.autoplayActive && !root.autoplayDismissed && player.duration > 20.0 && pos >= player.duration * 0.92) {
+                    root.triggerAutoplay()
+                }
+            }
+            onPlaybackEnded: {
+                if (root.autoplayActive) {
+                    root.playNextEpisodeNow()
+                }
+            }
+        }
+
+        // Autoplay Next Episode Countdown Overlay
+        Rectangle {
+            id: autoplayCard
+            visible: root.autoplayActive && root.autoplayNextItem !== null
+            anchors.right: parent.right
+            anchors.bottom: bottomHud.top
+            anchors.margins: 24
+            width: 340
+            height: 94
+            radius: themeManager.radiusMedium
+            color: themeManager.surfaceCard
+            border.color: themeManager.borderDivider
+            border.width: themeManager.borderWidth
+            z: 15
+
+            Behavior on opacity {
+                NumberAnimation { duration: themeManager.panelDuration }
+            }
+
+            ColumnLayout {
+                anchors.fill: parent
+                anchors.margins: 12
+                spacing: 8
+
+                RowLayout {
+                    Layout.fillWidth: true
+
+                    Text {
+                        text: "UP NEXT IN " + root.autoplayCountdown + "s"
+                        color: themeManager.accent
+                        font.pixelSize: 10
+                        font.weight: Font.DemiBold
+                        font.letterSpacing: 0.8
+                        font.features: { "tnum": 1 }
+                        Layout.fillWidth: true
+                    }
+
+                    Button {
+                        text: "Cancel"
+                        Layout.preferredHeight: 22
+                        background: Rectangle {
+                            color: parent.hovered ? themeManager.surfacePopover : "transparent"
+                            radius: themeManager.radiusSmall
+                        }
+                        contentItem: Text {
+                            text: parent.text
+                            color: themeManager.textSecondary
+                            font.pixelSize: 11
+                            font.weight: Font.Medium
+                            horizontalAlignment: Text.AlignHCenter
+                            verticalAlignment: Text.AlignVCenter
+                        }
+                        onClicked: root.cancelAutoplay()
+                    }
+                }
+
+                Text {
+                    text: root.autoplayNextItem ? (root.autoplayNextItem.showTitle + " · S" + root.autoplayNextItem.seasonNumber + "E" + root.autoplayNextItem.episodeNumber + " · " + root.autoplayNextItem.itemTitle) : ""
+                    color: themeManager.textPrimary
+                    font.pixelSize: 12
+                    font.weight: Font.Medium
+                    elide: Text.ElideRight
+                    Layout.fillWidth: true
+                }
+
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: 8
+
+                    Button {
+                        text: "Play Now"
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: 28
+                        background: Rectangle {
+                            color: parent.hovered ? themeManager.accentHover : themeManager.accent
+                            radius: themeManager.radiusSmall
+                        }
+                        contentItem: Text {
+                            text: parent.text
+                            color: "#ffffff"
+                            font.pixelSize: 11
+                            font.weight: Font.DemiBold
+                            horizontalAlignment: Text.AlignHCenter
+                            verticalAlignment: Text.AlignVCenter
+                        }
+                        onClicked: root.playNextEpisodeNow()
+                    }
+                }
+            }
         }
 
         // Mouse activity & cursor auto-hide monitor
@@ -1096,14 +1296,14 @@ ApplicationWindow {
             anchors.left: parent.left
             anchors.right: parent.right
             height: 80
-            color: "#12141a"
+            color: themeManager.surfaceElevated
             opacity: root.hudVisible ? 0.96 : 0.0
             visible: opacity > 0.0
-            border.color: "#232733"
-            border.width: 1
+            border.color: themeManager.borderDivider
+            border.width: themeManager.borderWidth
 
             Behavior on opacity {
-                NumberAnimation { duration: 180; easing.type: Easing.OutQuad }
+                NumberAnimation { duration: themeManager.fastDuration; easing.type: Easing.OutQuad }
             }
 
             ColumnLayout {
@@ -1126,11 +1326,11 @@ ApplicationWindow {
                         anchors.left: parent.left
                         anchors.right: parent.right
                         height: progressMouseArea.containsMouse ? 6 : 3
-                        color: "#232733"
-                        radius: 2
+                        color: themeManager.borderDivider
+                        radius: themeManager.radiusSmall
 
                         Behavior on height {
-                            NumberAnimation { duration: 120 }
+                            NumberAnimation { duration: themeManager.fastDuration }
                         }
 
                         // Buffer (demuxer cache) Region
@@ -1140,8 +1340,8 @@ ApplicationWindow {
                             anchors.top: parent.top
                             anchors.bottom: parent.bottom
                             width: player.duration > 0 ? parent.width * Math.max(0.0, Math.min(1.0, player.bufferPosition / player.duration)) : 0
-                            color: "#323846"
-                            radius: 2
+                            color: themeManager.surfacePopover
+                            radius: themeManager.radiusSmall
                         }
 
                         // Watched / Elapsed Fill
@@ -1151,8 +1351,8 @@ ApplicationWindow {
                             anchors.top: parent.top
                             anchors.bottom: parent.bottom
                             width: player.duration > 0 ? parent.width * Math.max(0.0, Math.min(1.0, (player.position / player.duration))) : 0
-                            color: "#d97736"
-                            radius: 2
+                            color: themeManager.accent
+                            radius: themeManager.radiusSmall
                         }
 
                         // Chapter Ticks
@@ -1162,7 +1362,7 @@ ApplicationWindow {
                                 width: 2
                                 anchors.top: parent.top
                                 anchors.bottom: parent.bottom
-                                color: "#090a0d"
+                                color: themeManager.backgroundDeep
                                 x: player.duration > 0 ? (modelData.time / player.duration) * progressTrack.width : 0
                                 visible: x > 0 && x < progressTrack.width
                             }
@@ -1174,8 +1374,8 @@ ApplicationWindow {
                             width: 12
                             height: 12
                             radius: 6
-                            color: "#e6e8ec"
-                            border.color: "#d97736"
+                            color: themeManager.textPrimary
+                            border.color: themeManager.accent
                             border.width: 2
                             anchors.verticalCenter: parent.verticalCenter
                             x: Math.max(0, Math.min(parent.width - width, (progressFill.width - width / 2)))
@@ -1207,10 +1407,10 @@ ApplicationWindow {
                         visible: progressMouseArea.containsMouse && player.duration > 0
                         width: tooltipText.implicitWidth + 12
                         height: 22
-                        color: "#191c24"
-                        border.color: "#232733"
-                        border.width: 1
-                        radius: 4
+                        color: themeManager.surfaceCard
+                        border.color: themeManager.borderDivider
+                        border.width: themeManager.borderWidth
+                        radius: themeManager.radiusSmall
                         anchors.bottom: progressTrack.top
                         anchors.bottomMargin: 8
                         x: Math.max(4, Math.min(parent.width - width - 4, progressMouseArea.mouseX - width / 2))
@@ -1223,7 +1423,7 @@ ApplicationWindow {
                                 var ratio = Math.max(0.0, Math.min(1.0, progressMouseArea.mouseX / progressBarArea.width))
                                 return root.formatTime(ratio * player.duration)
                             }
-                            color: "#e6e8ec"
+                            color: themeManager.textPrimary
                             font.pixelSize: 11
                             font.features: { "tnum": 1 }
                         }
@@ -1240,8 +1440,8 @@ ApplicationWindow {
                         Layout.preferredWidth: 32
                         Layout.preferredHeight: 32
                         background: Rectangle {
-                            color: playPauseBtn.hovered ? "#1c1f26" : "transparent"
-                            radius: 4
+                            color: playPauseBtn.hovered ? themeManager.surfacePopover : "transparent"
+                            radius: themeManager.radiusSmall
                         }
                         contentItem: Image {
                             source: player.paused ? "qrc:/assets/icons/play.svg" : "qrc:/assets/icons/pause.svg"
@@ -1258,7 +1458,7 @@ ApplicationWindow {
 
                     Text {
                         text: root.formatTime(player.position) + " / " + root.formatTime(player.duration)
-                        color: "#9aa0ac"
+                        color: themeManager.textSecondary
                         font.pixelSize: 12
                         font.features: { "tnum": 1 }
                     }
@@ -1270,8 +1470,8 @@ ApplicationWindow {
                         id: speedBtn
                         Layout.preferredHeight: 32
                         background: Rectangle {
-                            color: speedBtn.hovered || speedPopup.opened ? "#1c1f26" : "transparent"
-                            radius: 4
+                            color: speedBtn.hovered || speedPopup.opened ? themeManager.surfacePopover : "transparent"
+                            radius: themeManager.radiusSmall
                         }
                         contentItem: RowLayout {
                             spacing: 4
@@ -1283,7 +1483,7 @@ ApplicationWindow {
                             }
                             Text {
                                 text: player.speed.toFixed(2) + "x"
-                                color: player.speed !== 1.0 ? "#d97736" : "#9aa0ac"
+                                color: player.speed !== 1.0 ? themeManager.accent : themeManager.textSecondary
                                 font.pixelSize: 12
                                 font.weight: Font.Medium
                             }
@@ -1300,8 +1500,8 @@ ApplicationWindow {
                         Layout.preferredWidth: 32
                         Layout.preferredHeight: 32
                         background: Rectangle {
-                            color: audioBtn.hovered || audioPopup.opened ? "#1c1f26" : "transparent"
-                            radius: 4
+                            color: audioBtn.hovered || audioPopup.opened ? themeManager.surfacePopover : "transparent"
+                            radius: themeManager.radiusSmall
                         }
                         contentItem: Image {
                             source: "qrc:/assets/icons/audio.svg"
@@ -1324,8 +1524,8 @@ ApplicationWindow {
                         Layout.preferredWidth: 32
                         Layout.preferredHeight: 32
                         background: Rectangle {
-                            color: subBtn.hovered || subPopup.opened ? "#1c1f26" : "transparent"
-                            radius: 4
+                            color: subBtn.hovered || subPopup.opened ? themeManager.surfacePopover : "transparent"
+                            radius: themeManager.radiusSmall
                         }
                         contentItem: Image {
                             source: "qrc:/assets/icons/subtitles.svg"
@@ -1346,8 +1546,8 @@ ApplicationWindow {
                         Layout.preferredWidth: 32
                         Layout.preferredHeight: 32
                         background: Rectangle {
-                            color: muteBtn.hovered ? "#1c1f26" : "transparent"
-                            radius: 4
+                            color: muteBtn.hovered ? themeManager.surfacePopover : "transparent"
+                            radius: themeManager.radiusSmall
                         }
                         contentItem: Image {
                             source: "qrc:/assets/icons/volume.svg"
@@ -1369,8 +1569,8 @@ ApplicationWindow {
                         Layout.preferredWidth: 32
                         Layout.preferredHeight: 32
                         background: Rectangle {
-                            color: fsBtn.hovered ? "#1c1f26" : "transparent"
-                            radius: 4
+                            color: fsBtn.hovered ? themeManager.surfacePopover : "transparent"
+                            radius: themeManager.radiusSmall
                         }
                         contentItem: Image {
                             source: "qrc:/assets/icons/fullscreen.svg"
@@ -1400,10 +1600,10 @@ ApplicationWindow {
         width: 220
         padding: 8
         background: Rectangle {
-            color: "#222631"
-            border.color: "#232733"
-            border.width: 1
-            radius: 6
+            color: themeManager.surfacePopover
+            border.color: themeManager.borderDivider
+            border.width: themeManager.borderWidth
+            radius: themeManager.radiusMedium
         }
 
         contentItem: ColumnLayout {
@@ -1411,7 +1611,7 @@ ApplicationWindow {
 
             Text {
                 text: "AUDIO TRACKS"
-                color: "#9aa0ac"
+                color: themeManager.textSecondary
                 font.pixelSize: 10
                 font.weight: Font.DemiBold
                 font.letterSpacing: 0.8
@@ -1422,7 +1622,7 @@ ApplicationWindow {
             Rectangle {
                 Layout.fillWidth: true
                 height: 1
-                color: "#232733"
+                color: themeManager.borderDivider
             }
 
             Repeater {
@@ -1430,8 +1630,8 @@ ApplicationWindow {
                 Rectangle {
                     Layout.fillWidth: true
                     implicitHeight: 32
-                    radius: 4
-                    color: audioItemArea.containsMouse ? "#1c1f26" : "transparent"
+                    radius: themeManager.radiusSmall
+                    color: audioItemArea.containsMouse ? themeManager.surfaceCard : "transparent"
 
                     RowLayout {
                         anchors.fill: parent
@@ -1441,7 +1641,7 @@ ApplicationWindow {
 
                         Text {
                             text: modelData.title
-                            color: modelData.id === player.currentAudioTrackId ? "#d97736" : "#e6e8ec"
+                            color: modelData.id === player.currentAudioTrackId ? themeManager.accent : themeManager.textPrimary
                             font.pixelSize: 13
                             Layout.fillWidth: true
                             elide: Text.ElideRight
@@ -1478,10 +1678,10 @@ ApplicationWindow {
         width: 220
         padding: 8
         background: Rectangle {
-            color: "#222631"
-            border.color: "#232733"
-            border.width: 1
-            radius: 6
+            color: themeManager.surfacePopover
+            border.color: themeManager.borderDivider
+            border.width: themeManager.borderWidth
+            radius: themeManager.radiusMedium
         }
 
         contentItem: ColumnLayout {
@@ -1489,7 +1689,7 @@ ApplicationWindow {
 
             Text {
                 text: "SUBTITLES"
-                color: "#9aa0ac"
+                color: themeManager.textSecondary
                 font.pixelSize: 10
                 font.weight: Font.DemiBold
                 font.letterSpacing: 0.8
@@ -1500,14 +1700,14 @@ ApplicationWindow {
             Rectangle {
                 Layout.fillWidth: true
                 height: 1
-                color: "#232733"
+                color: themeManager.borderDivider
             }
 
             Rectangle {
                 Layout.fillWidth: true
                 implicitHeight: 32
-                radius: 4
-                color: subOffArea.containsMouse ? "#1c1f26" : "transparent"
+                radius: themeManager.radiusSmall
+                color: subOffArea.containsMouse ? themeManager.surfaceCard : "transparent"
 
                 RowLayout {
                     anchors.fill: parent
@@ -1516,7 +1716,7 @@ ApplicationWindow {
 
                     Text {
                         text: "Off"
-                        color: player.currentSubtitleTrackId <= 0 ? "#d97736" : "#e6e8ec"
+                        color: player.currentSubtitleTrackId <= 0 ? themeManager.accent : themeManager.textPrimary
                         font.pixelSize: 13
                         Layout.fillWidth: true
                     }
@@ -1546,8 +1746,8 @@ ApplicationWindow {
                 Rectangle {
                     Layout.fillWidth: true
                     implicitHeight: 32
-                    radius: 4
-                    color: subItemArea.containsMouse ? "#1c1f26" : "transparent"
+                    radius: themeManager.radiusSmall
+                    color: subItemArea.containsMouse ? themeManager.surfaceCard : "transparent"
 
                     RowLayout {
                         anchors.fill: parent
@@ -1557,7 +1757,7 @@ ApplicationWindow {
 
                         Text {
                             text: modelData.title
-                            color: modelData.id === player.currentSubtitleTrackId ? "#d97736" : "#e6e8ec"
+                            color: modelData.id === player.currentSubtitleTrackId ? themeManager.accent : themeManager.textPrimary
                             font.pixelSize: 13
                             Layout.fillWidth: true
                             elide: Text.ElideRight
@@ -1594,10 +1794,10 @@ ApplicationWindow {
         width: 180
         padding: 8
         background: Rectangle {
-            color: "#222631"
-            border.color: "#232733"
-            border.width: 1
-            radius: 6
+            color: themeManager.surfacePopover
+            border.color: themeManager.borderDivider
+            border.width: themeManager.borderWidth
+            radius: themeManager.radiusMedium
         }
 
         contentItem: ColumnLayout {
@@ -1605,7 +1805,7 @@ ApplicationWindow {
 
             Text {
                 text: "PLAYBACK SPEED"
-                color: "#9aa0ac"
+                color: themeManager.textSecondary
                 font.pixelSize: 10
                 font.weight: Font.DemiBold
                 font.letterSpacing: 0.8
@@ -1616,7 +1816,7 @@ ApplicationWindow {
             Rectangle {
                 Layout.fillWidth: true
                 height: 1
-                color: "#232733"
+                color: themeManager.borderDivider
             }
 
             Repeater {
@@ -1624,8 +1824,8 @@ ApplicationWindow {
                 Rectangle {
                     Layout.fillWidth: true
                     implicitHeight: 30
-                    radius: 4
-                    color: speedItemArea.containsMouse ? "#1c1f26" : "transparent"
+                    radius: themeManager.radiusSmall
+                    color: speedItemArea.containsMouse ? themeManager.surfaceCard : "transparent"
 
                     RowLayout {
                         anchors.fill: parent
@@ -1634,7 +1834,7 @@ ApplicationWindow {
 
                         Text {
                             text: modelData.toFixed(2) + "x"
-                            color: Math.abs(player.speed - modelData) < 0.05 ? "#d97736" : "#e6e8ec"
+                            color: Math.abs(player.speed - modelData) < 0.05 ? themeManager.accent : themeManager.textPrimary
                             font.pixelSize: 13
                             font.weight: Math.abs(player.speed - modelData) < 0.05 ? Font.DemiBold : Font.Normal
                             Layout.fillWidth: true
@@ -1663,6 +1863,154 @@ ApplicationWindow {
         }
     }
 
+    // Theme Selection Popover
+    Popup {
+        id: themePopup
+        x: Math.max(8, topNav.width - width - 20)
+        y: topNav.height + 6
+        width: 270
+        padding: 10
+        background: Rectangle {
+            color: themeManager.surfacePopover
+            border.color: themeManager.borderDivider
+            border.width: themeManager.borderWidth
+            radius: themeManager.radiusMedium
+        }
+
+        contentItem: ColumnLayout {
+            spacing: 6
+
+            Text {
+                text: "THEME PRESETS"
+                color: themeManager.textSecondary
+                font.pixelSize: 10
+                font.weight: Font.DemiBold
+                font.letterSpacing: 0.8
+                Layout.leftMargin: 4
+                Layout.topMargin: 2
+            }
+
+            Rectangle {
+                Layout.fillWidth: true
+                height: 1
+                color: themeManager.borderDivider
+            }
+
+            Repeater {
+                model: themeManager.availableThemes
+                Rectangle {
+                    Layout.fillWidth: true
+                    implicitHeight: 38
+                    radius: themeManager.radiusSmall
+                    color: modelData.name === themeManager.activeThemeName ? themeManager.surfaceCard : (themeRowMouse.containsMouse ? themeManager.surfaceCard : "transparent")
+                    border.color: modelData.name === themeManager.activeThemeName ? themeManager.accent : "transparent"
+                    border.width: 1
+
+                    RowLayout {
+                        anchors.fill: parent
+                        anchors.leftMargin: 8
+                        anchors.rightMargin: 8
+                        spacing: 8
+
+                        Image {
+                            visible: modelData.name === themeManager.activeThemeName
+                            source: "qrc:/assets/icons/checkmark.svg"
+                            sourceSize.width: 12
+                            sourceSize.height: 12
+                        }
+
+                        Item {
+                            visible: modelData.name !== themeManager.activeThemeName
+                            width: 12
+                        }
+
+                        ColumnLayout {
+                            Layout.fillWidth: true
+                            spacing: 1
+
+                            Text {
+                                text: modelData.displayName
+                                color: modelData.name === themeManager.activeThemeName ? themeManager.accent : themeManager.textPrimary
+                                font.pixelSize: 12
+                                font.weight: modelData.name === themeManager.activeThemeName ? Font.DemiBold : Font.Normal
+                                elide: Text.ElideRight
+                            }
+
+                            Text {
+                                text: modelData.description
+                                color: themeManager.textSecondary
+                                font.pixelSize: 10
+                                elide: Text.ElideRight
+                                Layout.fillWidth: true
+                            }
+                        }
+                    }
+
+                    MouseArea {
+                        id: themeRowMouse
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        onClicked: {
+                            themeManager.loadTheme(modelData.name)
+                            root.showToast("Theme: " + modelData.displayName)
+                            themePopup.close()
+                        }
+                    }
+                }
+            }
+
+            Rectangle {
+                Layout.fillWidth: true
+                height: 1
+                color: themeManager.borderDivider
+            }
+
+            // Reduced Motion Toggle
+            Rectangle {
+                Layout.fillWidth: true
+                implicitHeight: 30
+                radius: themeManager.radiusSmall
+                color: motionRowMouse.containsMouse ? themeManager.surfaceCard : "transparent"
+
+                RowLayout {
+                    anchors.fill: parent
+                    anchors.leftMargin: 8
+                    anchors.rightMargin: 8
+                    spacing: 8
+
+                    Image {
+                        visible: themeManager.reducedMotion
+                        source: "qrc:/assets/icons/checkmark.svg"
+                        sourceSize.width: 12
+                        sourceSize.height: 12
+                    }
+
+                    Item {
+                        visible: !themeManager.reducedMotion
+                        width: 12
+                    }
+
+                    Text {
+                        text: "Reduced Motion"
+                        color: themeManager.textPrimary
+                        font.pixelSize: 11
+                        Layout.fillWidth: true
+                    }
+                }
+
+                MouseArea {
+                    id: motionRowMouse
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    onClicked: {
+                        themeManager.reducedMotion = !themeManager.reducedMotion
+                        root.showToast("Reduced Motion: " + (themeManager.reducedMotion ? "On" : "Off"))
+                    }
+                }
+            }
+        }
+    }
+
     // Feedback Toast (Top Center Pill HUD)
     Rectangle {
         id: toast
@@ -1672,22 +2020,22 @@ ApplicationWindow {
         width: toastContent.implicitWidth + 28
         height: 32
         radius: 16
-        color: "#12141a"
-        border.color: "#232733"
-        border.width: 1
+        color: themeManager.surfacePopover
+        border.color: themeManager.borderDivider
+        border.width: themeManager.borderWidth
         opacity: root.toastVisible ? 0.95 : 0.0
         visible: opacity > 0.0
         z: 20
 
         Behavior on opacity {
-            NumberAnimation { duration: 150; easing.type: Easing.OutQuad }
+            NumberAnimation { duration: themeManager.panelDuration; easing.type: Easing.OutQuad }
         }
 
         Text {
             id: toastContent
             anchors.centerIn: parent
             text: root.toastText
-            color: "#e6e8ec"
+            color: themeManager.textPrimary
             font.pixelSize: 12
             font.weight: Font.Medium
         }
@@ -1757,9 +2105,10 @@ ApplicationWindow {
 
         Rectangle {
             anchors.fill: parent
-            color: "#e6090a0d"
+            color: themeManager.surfacePopover
+            opacity: 0.95
             visible: windowDropArea.isDragging
-            border.color: "#3b82f6"
+            border.color: themeManager.accent
             border.width: 2
 
             ColumnLayout {
@@ -1775,7 +2124,7 @@ ApplicationWindow {
 
                 Text {
                     text: "Drop media folder to import or video file to play"
-                    color: "#ffffff"
+                    color: themeManager.textPrimary
                     font.pixelSize: 16
                     font.weight: Font.DemiBold
                     Layout.alignment: Qt.AlignHCenter
@@ -1783,7 +2132,7 @@ ApplicationWindow {
 
                 Text {
                     text: "Rule 4: Your files remain untouched. Metadata is cataloged locally in SQLite."
-                    color: "#94a3b8"
+                    color: themeManager.textSecondary
                     font.pixelSize: 12
                     Layout.alignment: Qt.AlignHCenter
                 }

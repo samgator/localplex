@@ -116,6 +116,16 @@ void TestLibraryDatabase::testNextUpSequence() {
     QCOMPARE(nextUp.value(QStringLiteral("showTitle")).toString(), QStringLiteral("Severance"));
     QCOMPARE(nextUp.value(QStringLiteral("episodeNumber")).toInt(), 2);
     QCOMPARE(nextUp.value(QStringLiteral("itemTitle")).toString(), QStringLiteral("Half Loop"));
+
+    // Direct getNextEpisode query
+    QVariantMap nextEp = libDb.getNextEpisode(ep1Path);
+    QCOMPARE(nextEp.value(QStringLiteral("showTitle")).toString(), QStringLiteral("Severance"));
+    QCOMPARE(nextEp.value(QStringLiteral("episodeNumber")).toInt(), 2);
+    QCOMPARE(nextEp.value(QStringLiteral("filePath")).toString(), QStringLiteral("/media/TV/Severance/S01E02.mkv"));
+
+    // After last episode, getNextEpisode should return empty
+    QVariantMap endOfShow = libDb.getNextEpisode(QStringLiteral("/media/TV/Severance/S01E02.mkv"));
+    QVERIFY(endOfShow.isEmpty());
 }
 
 QTEST_MAIN(TestLibraryDatabase)

@@ -126,6 +126,7 @@ signals:
 
     void resumed(double resumePosition, double originalPosition);
     void playbackEnded();
+    void playbackError(const QString &message);
     void fileLoaded();
     void requestUpdate();
 

@@ -678,6 +678,77 @@ QVariantList LibraryDatabase::getEpisodes(const QString &showTitle, int seasonNu
     return list;
 }
 
+QVariantMap LibraryDatabase::getNextEpisode(const QString &currentFilePath) {
+    QVariantMap result;
+    if (!m_db || currentFilePath.isEmpty()) {
+        return result;
+    }
+
+    // 1. Find show_title, season_number, and episode_number for current file
+    const char *currSql = R"(
+        SELECT show_title, season_number, episode_number, media_type
+        FROM media_items
+        WHERE file_path = ?1;
+    )";
+
+    sqlite3_stmt *currStmt = nullptr;
+    if (sqlite3_prepare_v2(m_db, currSql, -1, &currStmt, nullptr) != SQLITE_OK) {
+        return result;
+    }
+
+    QByteArray pathUtf8 = currentFilePath.toUtf8();
+    sqlite3_bind_text(currStmt, 1, pathUtf8.constData(), -1, SQLITE_TRANSIENT);
+
+    QString showTitle;
+    int seasonNumber = 0;
+    int episodeNumber = 0;
+    QString mediaType;
+
+    if (sqlite3_step(currStmt) == SQLITE_ROW) {
+        showTitle = QString::fromUtf8(reinterpret_cast<const char *>(sqlite3_column_text(currStmt, 0)));
+        seasonNumber = sqlite3_column_int(currStmt, 1);
+        episodeNumber = sqlite3_column_int(currStmt, 2);
+        mediaType = QString::fromUtf8(reinterpret_cast<const char *>(sqlite3_column_text(currStmt, 3)));
+    }
+    sqlite3_finalize(currStmt);
+
+    if (mediaType != QLatin1String("episode") || showTitle.isEmpty()) {
+        return result;
+    }
+
+    // 2. Find next episode in sequence
+    const char *nextSql = R"(
+        SELECT file_path, item_title, season_number, episode_number, thumbnail_path
+        FROM media_items
+        WHERE show_title = ?1 AND media_type = 'episode'
+          AND (season_number > ?2 OR (season_number = ?2 AND episode_number > ?3))
+        ORDER BY season_number ASC, episode_number ASC
+        LIMIT 1;
+    )";
+
+    sqlite3_stmt *nextStmt = nullptr;
+    if (sqlite3_prepare_v2(m_db, nextSql, -1, &nextStmt, nullptr) != SQLITE_OK) {
+        return result;
+    }
+
+    QByteArray showUtf8 = showTitle.toUtf8();
+    sqlite3_bind_text(nextStmt, 1, showUtf8.constData(), -1, SQLITE_TRANSIENT);
+    sqlite3_bind_int(nextStmt, 2, seasonNumber);
+    sqlite3_bind_int(nextStmt, 3, episodeNumber);
+
+    if (sqlite3_step(nextStmt) == SQLITE_ROW) {
+        result[QStringLiteral("filePath")] = QString::fromUtf8(reinterpret_cast<const char *>(sqlite3_column_text(nextStmt, 0)));
+        result[QStringLiteral("itemTitle")] = QString::fromUtf8(reinterpret_cast<const char *>(sqlite3_column_text(nextStmt, 1)));
+        result[QStringLiteral("seasonNumber")] = sqlite3_column_int(nextStmt, 2);
+        result[QStringLiteral("episodeNumber")] = sqlite3_column_int(nextStmt, 3);
+        result[QStringLiteral("thumbnailPath")] = QString::fromUtf8(reinterpret_cast<const char *>(sqlite3_column_text(nextStmt, 4)));
+        result[QStringLiteral("showTitle")] = showTitle;
+    }
+
+    sqlite3_finalize(nextStmt);
+    return result;
+}
+
 QVariantList LibraryDatabase::getContinueWatchingAndNextUp(int limit) {
     QVariantList list;
     if (!m_db) {

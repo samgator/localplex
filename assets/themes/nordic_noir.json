@@ -1,0 +1,37 @@
+{
+  "name": "nordic_noir",
+  "displayName": "Nordic Noir",
+  "description": "Arctic slate, cold steel blue, and sharp glacial cyan accents.",
+  "colors": {
+    "backgroundDeep": "#0b0e14",
+    "surfaceElevated": "#111722",
+    "surfaceCard": "#17202f",
+    "surfacePopover": "#1e2a3e",
+    "textPrimary": "#f0f6fc",
+    "textSecondary": "#8b949e",
+    "textDim": "#484f58",
+    "borderDivider": "#253347",
+    "focusRing": "#38bdf8",
+    "accent": "#38bdf8",
+    "accentHover": "#7dd3fc",
+    "badgeMovieBg": "#0c4a6e",
+    "badgeMovieFg": "#7dd3fc",
+    "badgeEpisodeBg": "#1e293b",
+    "badgeEpisodeFg": "#38bdf8"
+  },
+  "typography": {
+    "fontFamily": "Inter",
+    "monoFontFamily": "monospace"
+  },
+  "geometry": {
+    "radiusSmall": 4,
+    "radiusMedium": 6,
+    "borderWidth": 1
+  },
+  "motion": {
+    "fastDuration": 100,
+    "panelDuration": 180,
+    "viewDuration": 220,
+    "reducedMotion": false
+  }
+}

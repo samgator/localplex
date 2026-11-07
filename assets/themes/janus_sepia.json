@@ -1,0 +1,37 @@
+{
+  "name": "janus_sepia",
+  "displayName": "Janus Sepia",
+  "description": "Deep espresso, umber tones, and warm brass accents drawn from 1970s physical cinema reels.",
+  "colors": {
+    "backgroundDeep": "#0c0a08",
+    "surfaceElevated": "#161310",
+    "surfaceCard": "#201c18",
+    "surfacePopover": "#2c2722",
+    "textPrimary": "#fdf6e2",
+    "textSecondary": "#b8a898",
+    "textDim": "#6e6258",
+    "borderDivider": "#322b25",
+    "focusRing": "#eab308",
+    "accent": "#eab308",
+    "accentHover": "#facc15",
+    "badgeMovieBg": "#3d2e14",
+    "badgeMovieFg": "#fde047",
+    "badgeEpisodeBg": "#292218",
+    "badgeEpisodeFg": "#fef08a"
+  },
+  "typography": {
+    "fontFamily": "Inter",
+    "monoFontFamily": "monospace"
+  },
+  "geometry": {
+    "radiusSmall": 4,
+    "radiusMedium": 6,
+    "borderWidth": 1
+  },
+  "motion": {
+    "fastDuration": 120,
+    "panelDuration": 200,
+    "viewDuration": 240,
+    "reducedMotion": false
+  }
+}

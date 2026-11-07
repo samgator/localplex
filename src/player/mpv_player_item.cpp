@@ -396,6 +396,11 @@ void MpvPlayerItem::loadFile(const QString &filePath) {
         cleanPath = QUrl(cleanPath).toLocalFile();
     }
 
+    if (!QFile::exists(cleanPath)) {
+        emit playbackError(QStringLiteral("The file at \"%1\" could not be located. It may have been moved or the drive disconnected.").arg(cleanPath));
+        return;
+    }
+
     m_source = cleanPath;
     emit sourceChanged(m_source);
 
@@ -759,8 +764,13 @@ void MpvPlayerItem::processMpvEvents() {
             break;
         }
         case MPV_EVENT_END_FILE: {
-            saveCurrentProgress();
-            emit playbackEnded();
+            auto *endFile = static_cast<mpv_event_end_file *>(event->data);
+            if (endFile && endFile->reason == MPV_END_FILE_REASON_ERROR) {
+                emit playbackError(QStringLiteral("The file could not be decoded. The container or video stream may be corrupt."));
+            } else {
+                saveCurrentProgress();
+                emit playbackEnded();
+            }
             break;
         }
         default:

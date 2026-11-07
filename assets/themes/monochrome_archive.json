@@ -1,0 +1,37 @@
+{
+  "name": "monochrome_archive",
+  "displayName": "Monochrome Archive",
+  "description": "High-contrast archival film black and silver, pure black canvas with clean mechanical typography.",
+  "colors": {
+    "backgroundDeep": "#000000",
+    "surfaceElevated": "#101012",
+    "surfaceCard": "#18181b",
+    "surfacePopover": "#242427",
+    "textPrimary": "#fafafa",
+    "textSecondary": "#a1a1aa",
+    "textDim": "#52525b",
+    "borderDivider": "#27272a",
+    "focusRing": "#ffffff",
+    "accent": "#e4e4e7",
+    "accentHover": "#ffffff",
+    "badgeMovieBg": "#27272a",
+    "badgeMovieFg": "#fafafa",
+    "badgeEpisodeBg": "#18181b",
+    "badgeEpisodeFg": "#d4d4d8"
+  },
+  "typography": {
+    "fontFamily": "Inter",
+    "monoFontFamily": "monospace"
+  },
+  "geometry": {
+    "radiusSmall": 2,
+    "radiusMedium": 4,
+    "borderWidth": 1
+  },
+  "motion": {
+    "fastDuration": 80,
+    "panelDuration": 150,
+    "viewDuration": 180,
+    "reducedMotion": false
+  }
+}

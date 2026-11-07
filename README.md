@@ -84,8 +84,13 @@ Run the binary:
   - Local-first companion `.nfo` metadata parsing (`NfoParser`)
   - Rule 4-compliant metadata correction and fix-up UI (`FixupView`)
   - Show merging, splitting, and sequential episode renumbering
-- **Phase 4: Themes & Polish**
-  - Token-based themes, live reload, accessibility, and human copywriting
+- **Phase 4: Themes & Polish** (Completed)
+  - Token-based theme engine with dynamic bindings (`ThemeManager`)
+  - 5 named presets: Criterion, Nordic Noir, Monochrome Archive, Janus Sepia, and Solarized Dark
+  - Theme specification and live-reload custom theme dev mode (`docs/THEMES.md`)
+  - Accessibility & motion pass with reduced-motion toggling and contrast focus rings
+  - Autoplay next episode with cancelable 10-second countdown
+  - Graceful empty states and error recovery for missing/corrupt media
 - **Phase 5: Packaging & Release**
   - Flatpak, AppImage, Windows portable zip, macOS bundle
 

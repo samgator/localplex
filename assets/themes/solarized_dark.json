@@ -1,0 +1,37 @@
+{
+  "name": "solarized_dark",
+  "displayName": "Solarized Dark",
+  "description": "Disciplined optical balance built on Ethan Schoonover's precision color theory.",
+  "colors": {
+    "backgroundDeep": "#00212b",
+    "surfaceElevated": "#002b36",
+    "surfaceCard": "#073642",
+    "surfacePopover": "#0e4453",
+    "textPrimary": "#93a1a1",
+    "textSecondary": "#657b83",
+    "textDim": "#586e75",
+    "borderDivider": "#0d4c5c",
+    "focusRing": "#2aa198",
+    "accent": "#2aa198",
+    "accentHover": "#35b8ad",
+    "badgeMovieBg": "#004052",
+    "badgeMovieFg": "#268bd2",
+    "badgeEpisodeBg": "#073642",
+    "badgeEpisodeFg": "#2aa198"
+  },
+  "typography": {
+    "fontFamily": "Inter",
+    "monoFontFamily": "monospace"
+  },
+  "geometry": {
+    "radiusSmall": 3,
+    "radiusMedium": 5,
+    "borderWidth": 1
+  },
+  "motion": {
+    "fastDuration": 100,
+    "panelDuration": 180,
+    "viewDuration": 220,
+    "reducedMotion": false
+  }
+}

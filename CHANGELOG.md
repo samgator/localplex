@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Phase 4: Themes & Polish**
+  - Token-based theme engine (`src/core/theme_manager.h`, `theme_manager.cpp`) exposing dynamic bindings for color, typography, geometry, and motion tokens with zero performance degradation.
+  - 5 distinct, named bundled theme presets (`assets/themes/`): Criterion (default warm cinematic dark), Nordic Noir (arctic slate & cyan), Monochrome Archive (pure OLED black & silver), Janus Sepia (espresso & vintage brass), and Solarized Dark (precision Ethan Schoonover palette).
+  - Theme specification and authoring guide in `docs/THEMES.md` with JSON schema, contrast requirements, and live-reload workflow.
+  - Live-reload dev mode monitoring `~/.config/localplex/themes/` with `QFileSystemWatcher` for real-time CSS/JSON theme editing without restarting or dropping player state.
+  - Accessibility & motion pass with OS reduced-motion detection and manual override collapsing all animation durations to 0 ms, high contrast focus rings, and full keyboard navigation.
+  - Autoplay next episode mechanism (`LibraryDatabase::getNextEpisode`) featuring a non-intrusive 10-second countdown card with cancel and play-now actions.
+  - Industrial error handling and user-first empty states per `docs/DESIGN.md` guidelines for missing files, corrupt media, unindexed folders, and zero search matches.
+  - Comprehensive unit test suite for built-in and custom theme discovery and validation (`test_theme_manager`).
+
 - **Phase 3: Import & Fix-up**
   - Event-driven filesystem folder watcher (`src/scanner/folder_watcher.h`, `folder_watcher.cpp`) leveraging `QFileSystemWatcher` with write-settle debouncing (800 ms) to trigger automated background rescanning on file changes with zero polling loops and near-zero idle CPU.
   - Native Drag-and-Drop import in QML (`src/qml/Main.qml`), supporting directory drops for automated catalog addition and background indexing, as well as single video drops for instant playback.

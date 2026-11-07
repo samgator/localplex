@@ -75,6 +75,7 @@ public:
     Q_INVOKABLE QVariantList getSeasons(const QString &showTitle);
 
     Q_INVOKABLE QVariantList getEpisodes(const QString &showTitle, int seasonNumber);
+    Q_INVOKABLE QVariantMap getNextEpisode(const QString &currentFilePath);
 
     Q_INVOKABLE QVariantList getContinueWatchingAndNextUp(int limit = 20);
 

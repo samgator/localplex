@@ -18,5 +18,11 @@
         <file>assets/icons/plus.svg</file>
         <file>assets/icons/filter.svg</file>
         <file>assets/icons/edit.svg</file>
+        <file>assets/icons/palette.svg</file>
+        <file>assets/themes/criterion.json</file>
+        <file>assets/themes/nordic_noir.json</file>
+        <file>assets/themes/monochrome_archive.json</file>
+        <file>assets/themes/janus_sepia.json</file>
+        <file>assets/themes/solarized_dark.json</file>
     </qresource>
 </RCC>

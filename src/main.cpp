@@ -7,6 +7,7 @@
 #include "scanner/folder_watcher.h"
 #include "models/library_model.h"
 #include "core/keybind_manager.h"
+#include "core/theme_manager.h"
 
 #include <QtGui/QGuiApplication>
 #include <QtGui/QFontDatabase>
@@ -38,10 +39,11 @@ int main(int argc, char *argv[]) {
     app.setOrganizationName(QStringLiteral("localplex"));
     app.setOrganizationDomain(QStringLiteral("localplex.org"));
 
-    // Initialize databases and keybind manager
+    // Initialize databases, keybind manager, and themes
     localplex::database::PlaybackDatabase::instance().initialize();
     localplex::database::LibraryDatabase::instance().initialize();
     localplex::core::KeybindManager::instance().loadConfiguration();
+    localplex::core::ThemeManager::instance().initialize();
 
     // Register bundled typography
     QFontDatabase::addApplicationFont(QStringLiteral(":/assets/fonts/Inter-Variable.ttf"));
@@ -56,6 +58,7 @@ int main(int argc, char *argv[]) {
     qmlRegisterSingletonInstance("localplex.scanner", 1, 0, "LibraryScanner", &localplex::scanner::LibraryScanner::instance());
     qmlRegisterSingletonInstance("localplex.scanner", 1, 0, "FolderWatcher", &localplex::scanner::FolderWatcher::instance());
     qmlRegisterSingletonInstance("localplex.core", 1, 0, "KeybindManager", &localplex::core::KeybindManager::instance());
+    qmlRegisterSingletonInstance("localplex.core", 1, 0, "ThemeManager", &localplex::core::ThemeManager::instance());
 
     // Command-line options
     QCommandLineParser parser;
@@ -83,6 +86,7 @@ int main(int argc, char *argv[]) {
     engine.rootContext()->setContextProperty(QStringLiteral("libraryScanner"), &localplex::scanner::LibraryScanner::instance());
     engine.rootContext()->setContextProperty(QStringLiteral("folderWatcher"), &localplex::scanner::FolderWatcher::instance());
     engine.rootContext()->setContextProperty(QStringLiteral("keybindManager"), &localplex::core::KeybindManager::instance());
+    engine.rootContext()->setContextProperty(QStringLiteral("themeManager"), &localplex::core::ThemeManager::instance());
 
     // Check if an initial media file argument was passed
     QString initialFilePath;

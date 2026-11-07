@@ -4,10 +4,11 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import localplex.database 1.0
+import localplex.core 1.0
 
 Rectangle {
     id: fixupViewRoot
-    color: "#090a0d"
+    color: themeManager.backgroundDeep
 
     signal backRequested()
     signal notifyUser(string message)
@@ -81,9 +82,9 @@ Rectangle {
         Rectangle {
             Layout.fillWidth: true
             height: 44
-            color: "#0f172a"
-            border.color: "#1e293b"
-            border.width: 1
+            color: themeManager.surfaceCard
+            border.color: themeManager.borderDivider
+            border.width: themeManager.borderWidth
 
             RowLayout {
                 anchors.fill: parent
@@ -95,12 +96,12 @@ Rectangle {
                     width: 8
                     height: 8
                     radius: 4
-                    color: "#38bdf8"
+                    color: themeManager.accent
                 }
 
                 Text {
                     text: "Rule 4 Compliance: Metadata corrections are stored exclusively in localplex SQLite database. Files on disk are NEVER touched or renamed."
-                    color: "#94a3b8"
+                    color: themeManager.textSecondary
                     font.pixelSize: 12
                     font.weight: Font.Medium
                     Layout.fillWidth: true
@@ -109,7 +110,7 @@ Rectangle {
 
                 Text {
                     text: selectedCount + " selected"
-                    color: selectedCount > 0 ? "#38bdf8" : "#64748b"
+                    color: selectedCount > 0 ? themeManager.accent : themeManager.textDim
                     font.pixelSize: 12
                     font.weight: Font.SemiBold
                 }
@@ -119,12 +120,14 @@ Rectangle {
                     visible: allItems.length > 0
                     Layout.preferredHeight: 28
                     background: Rectangle {
-                        color: parent.hovered ? "#334155" : "#1e293b"
-                        radius: 4
+                        color: parent.hovered ? themeManager.surfacePopover : themeManager.surfaceElevated
+                        border.color: themeManager.borderDivider
+                        border.width: themeManager.borderWidth
+                        radius: themeManager.radiusSmall
                     }
                     contentItem: Text {
                         text: parent.text
-                        color: "#e2e8f0"
+                        color: themeManager.textPrimary
                         font.pixelSize: 11
                         font.weight: Font.Medium
                         horizontalAlignment: Text.AlignHCenter
@@ -138,12 +141,14 @@ Rectangle {
                     visible: selectedCount > 0
                     Layout.preferredHeight: 28
                     background: Rectangle {
-                        color: parent.hovered ? "#334155" : "#1e293b"
-                        radius: 4
+                        color: parent.hovered ? themeManager.surfacePopover : themeManager.surfaceElevated
+                        border.color: themeManager.borderDivider
+                        border.width: themeManager.borderWidth
+                        radius: themeManager.radiusSmall
                     }
                     contentItem: Text {
                         text: parent.text
-                        color: "#94a3b8"
+                        color: themeManager.textSecondary
                         font.pixelSize: 11
                         font.weight: Font.Medium
                         horizontalAlignment: Text.AlignHCenter
@@ -158,9 +163,9 @@ Rectangle {
         Rectangle {
             Layout.fillWidth: true
             height: 52
-            color: "#12141a"
-            border.color: "#232733"
-            border.width: 1
+            color: themeManager.surfaceElevated
+            border.color: themeManager.borderDivider
+            border.width: themeManager.borderWidth
 
             RowLayout {
                 anchors.fill: parent
@@ -172,10 +177,10 @@ Rectangle {
                 Rectangle {
                     Layout.preferredWidth: 280
                     Layout.preferredHeight: 32
-                    color: "#1a1d26"
-                    radius: 6
-                    border.color: searchInput.activeFocus ? "#3b82f6" : "#2a2e3d"
-                    border.width: 1
+                    color: themeManager.backgroundDeep
+                    radius: themeManager.radiusSmall
+                    border.color: searchInput.activeFocus ? themeManager.focusRing : themeManager.borderDivider
+                    border.width: searchInput.activeFocus ? 2 : themeManager.borderWidth
 
                     RowLayout {
                         anchors.fill: parent
@@ -193,7 +198,7 @@ Rectangle {
                         TextInput {
                             id: searchInput
                             Layout.fillWidth: true
-                            color: "#e6e8ec"
+                            color: themeManager.textPrimary
                             font.pixelSize: 12
                             clip: true
                             onTextChanged: {
@@ -203,7 +208,7 @@ Rectangle {
 
                             Text {
                                 text: "Search catalog or path..."
-                                color: "#6b7280"
+                                color: themeManager.textDim
                                 font.pixelSize: 12
                                 visible: !searchInput.text && !searchInput.activeFocus
                                 anchors.verticalCenter: parent.verticalCenter
@@ -227,12 +232,12 @@ Rectangle {
                             Layout.preferredHeight: 28
                             Layout.preferredWidth: 80
                             background: Rectangle {
-                                color: fixupViewRoot.typeFilter === modelData.val ? "#2563eb" : (parent.hovered ? "#1f2430" : "transparent")
-                                radius: 4
+                                color: fixupViewRoot.typeFilter === modelData.val ? themeManager.accent : (parent.hovered ? themeManager.surfaceCard : "transparent")
+                                radius: themeManager.radiusSmall
                             }
                             contentItem: Text {
                                 text: modelData.label
-                                color: fixupViewRoot.typeFilter === modelData.val ? "#ffffff" : "#9ca3af"
+                                color: fixupViewRoot.typeFilter === modelData.val ? "#ffffff" : themeManager.textSecondary
                                 font.pixelSize: 11
                                 font.weight: fixupViewRoot.typeFilter === modelData.val ? Font.DemiBold : Font.Normal
                                 horizontalAlignment: Text.AlignHCenter
@@ -252,14 +257,14 @@ Rectangle {
                     Layout.preferredHeight: 28
                     Layout.preferredWidth: 80
                     background: Rectangle {
-                        color: parent.hovered ? "#262b38" : "#1a1d26"
-                        border.color: "#2e3444"
-                        border.width: 1
-                        radius: 4
+                        color: parent.hovered ? themeManager.surfaceCard : themeManager.surfaceElevated
+                        border.color: themeManager.borderDivider
+                        border.width: themeManager.borderWidth
+                        radius: themeManager.radiusSmall
                     }
                     contentItem: Text {
                         text: "Refresh"
-                        color: "#e6e8ec"
+                        color: themeManager.textPrimary
                         font.pixelSize: 11
                         horizontalAlignment: Text.AlignHCenter
                         verticalAlignment: Text.AlignVCenter
@@ -279,7 +284,7 @@ Rectangle {
             Rectangle {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
-                color: "#0d0f14"
+                color: themeManager.backgroundDeep
 
                 ColumnLayout {
                     anchors.fill: parent
@@ -289,9 +294,9 @@ Rectangle {
                     Rectangle {
                         Layout.fillWidth: true
                         height: 32
-                        color: "#161922"
-                        border.color: "#232733"
-                        border.width: 1
+                        color: themeManager.surfaceElevated
+                        border.color: themeManager.borderDivider
+                        border.width: themeManager.borderWidth
 
                         RowLayout {
                             anchors.fill: parent
@@ -303,7 +308,7 @@ Rectangle {
 
                             Text {
                                 text: "TITLE / SHOW"
-                                color: "#6b7280"
+                                color: themeManager.textDim
                                 font.pixelSize: 10
                                 font.weight: Font.DemiBold
                                 Layout.preferredWidth: 220
@@ -311,7 +316,7 @@ Rectangle {
 
                             Text {
                                 text: "SEASON"
-                                color: "#6b7280"
+                                color: themeManager.textDim
                                 font.pixelSize: 10
                                 font.weight: Font.DemiBold
                                 Layout.preferredWidth: 60
@@ -319,7 +324,7 @@ Rectangle {
 
                             Text {
                                 text: "EPISODE"
-                                color: "#6b7280"
+                                color: themeManager.textDim
                                 font.pixelSize: 10
                                 font.weight: Font.DemiBold
                                 Layout.preferredWidth: 60
@@ -327,7 +332,7 @@ Rectangle {
 
                             Text {
                                 text: "YEAR"
-                                color: "#6b7280"
+                                color: themeManager.textDim
                                 font.pixelSize: 10
                                 font.weight: Font.DemiBold
                                 Layout.preferredWidth: 50
@@ -335,7 +340,7 @@ Rectangle {
 
                             Text {
                                 text: "TYPE"
-                                color: "#6b7280"
+                                color: themeManager.textDim
                                 font.pixelSize: 10
                                 font.weight: Font.DemiBold
                                 Layout.preferredWidth: 70
@@ -343,7 +348,7 @@ Rectangle {
 
                             Text {
                                 text: "FILE PATH"
-                                color: "#6b7280"
+                                color: themeManager.textDim
                                 font.pixelSize: 10
                                 font.weight: Font.DemiBold
                                 Layout.fillWidth: true
@@ -363,9 +368,9 @@ Rectangle {
                             id: rowRect
                             width: itemsList.width
                             height: 40
-                            color: isSelected ? "#1e293b" : (rowMouse.containsMouse ? "#141720" : "transparent")
-                            border.color: "#1c202a"
-                            border.width: 1
+                            color: isSelected ? themeManager.surfaceCard : (rowMouse.containsMouse ? themeManager.surfaceElevated : "transparent")
+                            border.color: themeManager.borderDivider
+                            border.width: themeManager.borderWidth
 
                             property var itemData: modelData
                             property bool isSelected: !!fixupViewRoot.selectedPathMap[itemData.filePath]
@@ -387,9 +392,9 @@ Rectangle {
                                 Rectangle {
                                     width: 18
                                     height: 18
-                                    radius: 3
-                                    color: isSelected ? "#2563eb" : "#1a1d26"
-                                    border.color: isSelected ? "#3b82f6" : "#374151"
+                                    radius: themeManager.radiusSmall
+                                    color: isSelected ? themeManager.accent : themeManager.surfaceCard
+                                    border.color: isSelected ? themeManager.accent : themeManager.borderDivider
                                     border.width: 1
 
                                     Image {
@@ -405,7 +410,7 @@ Rectangle {
                                 Text {
                                     Layout.preferredWidth: 220
                                     text: itemData.showTitle ? (itemData.showTitle + " - " + itemData.itemTitle) : (itemData.itemTitle ? itemData.itemTitle : "Untitled")
-                                    color: isSelected ? "#ffffff" : "#e2e8f0"
+                                    color: themeManager.textPrimary
                                     font.pixelSize: 12
                                     font.weight: Font.Medium
                                     elide: Text.ElideRight
@@ -415,7 +420,7 @@ Rectangle {
                                 Text {
                                     Layout.preferredWidth: 60
                                     text: itemData.seasonNumber > 0 ? ("S" + itemData.seasonNumber) : "-"
-                                    color: "#94a3b8"
+                                    color: themeManager.textSecondary
                                     font.pixelSize: 11
                                 }
 
@@ -423,7 +428,7 @@ Rectangle {
                                 Text {
                                     Layout.preferredWidth: 60
                                     text: itemData.episodeNumber > 0 ? ("E" + itemData.episodeNumber) : "-"
-                                    color: "#94a3b8"
+                                    color: themeManager.textSecondary
                                     font.pixelSize: 11
                                 }
 
@@ -431,7 +436,7 @@ Rectangle {
                                 Text {
                                     Layout.preferredWidth: 50
                                     text: itemData.year > 0 ? itemData.year : "-"
-                                    color: "#94a3b8"
+                                    color: themeManager.textSecondary
                                     font.pixelSize: 11
                                 }
 
@@ -439,15 +444,15 @@ Rectangle {
                                 Rectangle {
                                     Layout.preferredWidth: 64
                                     Layout.preferredHeight: 20
-                                    radius: 3
-                                    color: itemData.mediaType === "movie" ? "#1e3a5f" : "#1e293b"
-                                    border.color: itemData.mediaType === "movie" ? "#2563eb" : "#3b82f6"
+                                    radius: themeManager.radiusSmall
+                                    color: itemData.mediaType === "movie" ? themeManager.badgeMovieBg : themeManager.badgeEpisodeBg
+                                    border.color: itemData.mediaType === "movie" ? themeManager.badgeMovieFg : themeManager.badgeEpisodeFg
                                     border.width: 1
 
                                     Text {
                                         anchors.centerIn: parent
                                         text: itemData.mediaType === "movie" ? "Movie" : "Episode"
-                                        color: itemData.mediaType === "movie" ? "#60a5fa" : "#93c5fd"
+                                        color: itemData.mediaType === "movie" ? themeManager.badgeMovieFg : themeManager.badgeEpisodeFg
                                         font.pixelSize: 10
                                         font.weight: Font.DemiBold
                                     }
@@ -457,7 +462,7 @@ Rectangle {
                                 Text {
                                     Layout.fillWidth: true
                                     text: itemData.filePath
-                                    color: "#64748b"
+                                    color: themeManager.textDim
                                     font.pixelSize: 11
                                     elide: Text.ElideMiddle
                                 }
@@ -476,7 +481,7 @@ Rectangle {
 
                                 Text {
                                     text: "No items match criteria"
-                                    color: "#94a3b8"
+                                    color: themeManager.textPrimary
                                     font.pixelSize: 14
                                     font.weight: Font.Medium
                                     Layout.alignment: Qt.AlignHCenter
@@ -484,7 +489,7 @@ Rectangle {
 
                                 Text {
                                     text: "Add media folders or adjust search/filters"
-                                    color: "#64748b"
+                                    color: themeManager.textSecondary
                                     font.pixelSize: 12
                                     Layout.alignment: Qt.AlignHCenter
                                 }
@@ -498,9 +503,9 @@ Rectangle {
             Rectangle {
                 Layout.preferredWidth: 340
                 Layout.fillHeight: true
-                color: "#12141a"
-                border.color: "#232733"
-                border.width: 1
+                color: themeManager.surfaceElevated
+                border.color: themeManager.borderDivider
+                border.width: themeManager.borderWidth
 
                 ColumnLayout {
                     anchors.fill: parent
@@ -509,7 +514,7 @@ Rectangle {
 
                     Text {
                         text: "Batch Fix-up Actions"
-                        color: "#ffffff"
+                        color: themeManager.textPrimary
                         font.pixelSize: 14
                         font.weight: Font.DemiBold
                     }
@@ -531,12 +536,12 @@ Rectangle {
                                 Layout.fillWidth: true
                                 Layout.preferredHeight: 30
                                 background: Rectangle {
-                                    color: fixupViewRoot.activeTab === modelData.id ? "#2563eb" : (parent.hovered ? "#1f2430" : "#161922")
-                                    radius: 4
+                                    color: fixupViewRoot.activeTab === modelData.id ? themeManager.accent : (parent.hovered ? themeManager.surfacePopover : themeManager.surfaceCard)
+                                    radius: themeManager.radiusSmall
                                 }
                                 contentItem: Text {
                                     text: modelData.label
-                                    color: fixupViewRoot.activeTab === modelData.id ? "#ffffff" : "#94a3b8"
+                                    color: fixupViewRoot.activeTab === modelData.id ? "#ffffff" : themeManager.textSecondary
                                     font.pixelSize: 11
                                     font.weight: Font.Medium
                                     horizontalAlignment: Text.AlignHCenter
@@ -550,7 +555,7 @@ Rectangle {
                     Rectangle {
                         Layout.fillWidth: true
                         height: 1
-                        color: "#232733"
+                        color: themeManager.borderDivider
                     }
 
                     // Tab 1: Assign Show & Season
@@ -561,24 +566,24 @@ Rectangle {
 
                         Text {
                             text: "Assign Show & Episodes"
-                            color: "#e2e8f0"
+                            color: themeManager.textPrimary
                             font.pixelSize: 12
                             font.weight: Font.DemiBold
                         }
 
                         Text {
                             text: "Show Title"
-                            color: "#94a3b8"
+                            color: themeManager.textSecondary
                             font.pixelSize: 11
                         }
 
                         Rectangle {
                             Layout.fillWidth: true
                             height: 32
-                            color: "#1a1d26"
-                            radius: 4
-                            border.color: showTitleInput.activeFocus ? "#3b82f6" : "#2e3444"
-                            border.width: 1
+                            color: themeManager.surfaceCard
+                            radius: themeManager.radiusSmall
+                            border.color: showTitleInput.activeFocus ? themeManager.focusRing : themeManager.borderDivider
+                            border.width: showTitleInput.activeFocus ? 2 : themeManager.borderWidth
 
                             TextInput {
                                 id: showTitleInput
@@ -586,7 +591,7 @@ Rectangle {
                                 anchors.leftMargin: 8
                                 anchors.rightMargin: 8
                                 verticalAlignment: TextInput.AlignVCenter
-                                color: "#ffffff"
+                                color: themeManager.textPrimary
                                 font.pixelSize: 12
                                 text: ""
                             }
@@ -601,7 +606,7 @@ Rectangle {
                                 spacing: 4
                                 Text {
                                     text: "Season"
-                                    color: "#94a3b8"
+                                    color: themeManager.textSecondary
                                     font.pixelSize: 11
                                 }
                                 SpinBox {
@@ -618,7 +623,7 @@ Rectangle {
                                 spacing: 4
                                 Text {
                                     text: "Start Episode"
-                                    color: "#94a3b8"
+                                    color: themeManager.textSecondary
                                     font.pixelSize: 11
                                 }
                                 SpinBox {
@@ -633,7 +638,7 @@ Rectangle {
 
                         Text {
                             text: "Sequentially numbers selected files starting from Episode " + startEpSpin.value + "."
-                            color: "#64748b"
+                            color: themeManager.textDim
                             font.pixelSize: 11
                             wrapMode: Text.WordWrap
                             Layout.fillWidth: true
@@ -645,8 +650,8 @@ Rectangle {
                             enabled: fixupViewRoot.selectedCount > 0 && showTitleInput.text.trim().length > 0
                             opacity: enabled ? 1.0 : 0.5
                             background: Rectangle {
-                                color: parent.enabled ? (parent.hovered ? "#1d4ed8" : "#2563eb") : "#1e293b"
-                                radius: 4
+                                color: parent.enabled ? (parent.hovered ? themeManager.accentHover : themeManager.accent) : themeManager.surfaceCard
+                                radius: themeManager.radiusSmall
                             }
                             contentItem: Text {
                                 text: "Apply Show & Sequence"
@@ -678,24 +683,24 @@ Rectangle {
 
                         Text {
                             text: "Assign as Movie"
-                            color: "#e2e8f0"
+                            color: themeManager.textPrimary
                             font.pixelSize: 12
                             font.weight: Font.DemiBold
                         }
 
                         Text {
                             text: "Movie Title"
-                            color: "#94a3b8"
+                            color: themeManager.textSecondary
                             font.pixelSize: 11
                         }
 
                         Rectangle {
                             Layout.fillWidth: true
                             height: 32
-                            color: "#1a1d26"
-                            radius: 4
-                            border.color: movieTitleInput.activeFocus ? "#3b82f6" : "#2e3444"
-                            border.width: 1
+                            color: themeManager.surfaceCard
+                            radius: themeManager.radiusSmall
+                            border.color: movieTitleInput.activeFocus ? themeManager.focusRing : themeManager.borderDivider
+                            border.width: movieTitleInput.activeFocus ? 2 : themeManager.borderWidth
 
                             TextInput {
                                 id: movieTitleInput
@@ -703,7 +708,7 @@ Rectangle {
                                 anchors.leftMargin: 8
                                 anchors.rightMargin: 8
                                 verticalAlignment: TextInput.AlignVCenter
-                                color: "#ffffff"
+                                color: themeManager.textPrimary
                                 font.pixelSize: 12
                                 text: ""
                             }
@@ -714,7 +719,7 @@ Rectangle {
                             spacing: 4
                             Text {
                                 text: "Year (Optional)"
-                                color: "#94a3b8"
+                                color: themeManager.textSecondary
                                 font.pixelSize: 11
                             }
                             SpinBox {
@@ -732,8 +737,8 @@ Rectangle {
                             enabled: fixupViewRoot.selectedCount > 0 && movieTitleInput.text.trim().length > 0
                             opacity: enabled ? 1.0 : 0.5
                             background: Rectangle {
-                                color: parent.enabled ? (parent.hovered ? "#1d4ed8" : "#2563eb") : "#1e293b"
-                                radius: 4
+                                color: parent.enabled ? (parent.hovered ? themeManager.accentHover : themeManager.accent) : themeManager.surfaceCard
+                                radius: themeManager.radiusSmall
                             }
                             contentItem: Text {
                                 text: "Apply Movie Metadata"
@@ -765,24 +770,24 @@ Rectangle {
 
                         Text {
                             text: "Merge Two Shows"
-                            color: "#e2e8f0"
+                            color: themeManager.textPrimary
                             font.pixelSize: 12
                             font.weight: Font.DemiBold
                         }
 
                         Text {
                             text: "Source Show Title (to merge from)"
-                            color: "#94a3b8"
+                            color: themeManager.textSecondary
                             font.pixelSize: 11
                         }
 
                         Rectangle {
                             Layout.fillWidth: true
                             height: 32
-                            color: "#1a1d26"
-                            radius: 4
-                            border.color: sourceShowInput.activeFocus ? "#3b82f6" : "#2e3444"
-                            border.width: 1
+                            color: themeManager.surfaceCard
+                            radius: themeManager.radiusSmall
+                            border.color: sourceShowInput.activeFocus ? themeManager.focusRing : themeManager.borderDivider
+                            border.width: sourceShowInput.activeFocus ? 2 : themeManager.borderWidth
 
                             TextInput {
                                 id: sourceShowInput
@@ -790,24 +795,24 @@ Rectangle {
                                 anchors.leftMargin: 8
                                 anchors.rightMargin: 8
                                 verticalAlignment: TextInput.AlignVCenter
-                                color: "#ffffff"
+                                color: themeManager.textPrimary
                                 font.pixelSize: 12
                             }
                         }
 
                         Text {
                             text: "Target Show Title (to merge into)"
-                            color: "#94a3b8"
+                            color: themeManager.textSecondary
                             font.pixelSize: 11
                         }
 
                         Rectangle {
                             Layout.fillWidth: true
                             height: 32
-                            color: "#1a1d26"
-                            radius: 4
-                            border.color: targetShowInput.activeFocus ? "#3b82f6" : "#2e3444"
-                            border.width: 1
+                            color: themeManager.surfaceCard
+                            radius: themeManager.radiusSmall
+                            border.color: targetShowInput.activeFocus ? themeManager.focusRing : themeManager.borderDivider
+                            border.width: targetShowInput.activeFocus ? 2 : themeManager.borderWidth
 
                             TextInput {
                                 id: targetShowInput
@@ -815,7 +820,7 @@ Rectangle {
                                 anchors.leftMargin: 8
                                 anchors.rightMargin: 8
                                 verticalAlignment: TextInput.AlignVCenter
-                                color: "#ffffff"
+                                color: themeManager.textPrimary
                                 font.pixelSize: 12
                             }
                         }
@@ -826,8 +831,8 @@ Rectangle {
                             enabled: sourceShowInput.text.trim().length > 0 && targetShowInput.text.trim().length > 0
                             opacity: enabled ? 1.0 : 0.5
                             background: Rectangle {
-                                color: parent.enabled ? (parent.hovered ? "#1d4ed8" : "#2563eb") : "#1e293b"
-                                radius: 4
+                                color: parent.enabled ? (parent.hovered ? themeManager.accentHover : themeManager.accent) : themeManager.surfaceCard
+                                radius: themeManager.radiusSmall
                             }
                             contentItem: Text {
                                 text: "Merge Shows"
@@ -858,24 +863,24 @@ Rectangle {
 
                         Text {
                             text: "Split into New Show"
-                            color: "#e2e8f0"
+                            color: themeManager.textPrimary
                             font.pixelSize: 12
                             font.weight: Font.DemiBold
                         }
 
                         Text {
                             text: "New Show Title"
-                            color: "#94a3b8"
+                            color: themeManager.textSecondary
                             font.pixelSize: 11
                         }
 
                         Rectangle {
                             Layout.fillWidth: true
                             height: 32
-                            color: "#1a1d26"
-                            radius: 4
-                            border.color: splitTitleInput.activeFocus ? "#3b82f6" : "#2e3444"
-                            border.width: 1
+                            color: themeManager.surfaceCard
+                            radius: themeManager.radiusSmall
+                            border.color: splitTitleInput.activeFocus ? themeManager.focusRing : themeManager.borderDivider
+                            border.width: splitTitleInput.activeFocus ? 2 : themeManager.borderWidth
 
                             TextInput {
                                 id: splitTitleInput
@@ -883,7 +888,7 @@ Rectangle {
                                 anchors.leftMargin: 8
                                 anchors.rightMargin: 8
                                 verticalAlignment: TextInput.AlignVCenter
-                                color: "#ffffff"
+                                color: themeManager.textPrimary
                                 font.pixelSize: 12
                             }
                         }
@@ -893,7 +898,7 @@ Rectangle {
                             spacing: 4
                             Text {
                                 text: "Season"
-                                color: "#94a3b8"
+                                color: themeManager.textSecondary
                                 font.pixelSize: 11
                             }
                             SpinBox {
@@ -911,8 +916,8 @@ Rectangle {
                             enabled: fixupViewRoot.selectedCount > 0 && splitTitleInput.text.trim().length > 0
                             opacity: enabled ? 1.0 : 0.5
                             background: Rectangle {
-                                color: parent.enabled ? (parent.hovered ? "#1d4ed8" : "#2563eb") : "#1e293b"
-                                radius: 4
+                                color: parent.enabled ? (parent.hovered ? themeManager.accentHover : themeManager.accent) : themeManager.surfaceCard
+                                radius: themeManager.radiusSmall
                             }
                             contentItem: Text {
                                 text: "Split Selected Episodes"

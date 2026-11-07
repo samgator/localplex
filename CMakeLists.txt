@@ -53,6 +53,8 @@ set(LOCALPLEX_SOURCES
     src/models/library_model.cpp
     src/core/keybind_manager.h
     src/core/keybind_manager.cpp
+    src/core/theme_manager.h
+    src/core/theme_manager.cpp
     resources.qrc
 )
 
@@ -175,3 +177,17 @@ target_link_libraries(test_fixup PRIVATE
     SQLite3::SQLite3
 )
 add_test(NAME FixupTest COMMAND test_fixup)
+
+# Theme manager unit test
+add_executable(test_theme_manager
+    tests/unit/test_theme_manager.cpp
+    src/core/theme_manager.h
+    src/core/theme_manager.cpp
+    resources.qrc
+)
+target_include_directories(test_theme_manager PRIVATE src)
+target_link_libraries(test_theme_manager PRIVATE
+    Qt6::Core
+    Qt6::Test
+)
+add_test(NAME ThemeManagerTest COMMAND test_theme_manager)

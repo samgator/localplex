@@ -1,0 +1,37 @@
+{
+  "name": "criterion",
+  "displayName": "Criterion",
+  "description": "Warm cinematic dark, deep charcoal, and amber highlights inspired by physical film archives.",
+  "colors": {
+    "backgroundDeep": "#090a0d",
+    "surfaceElevated": "#12141a",
+    "surfaceCard": "#191c24",
+    "surfacePopover": "#222631",
+    "textPrimary": "#e6e8ec",
+    "textSecondary": "#9aa0ac",
+    "textDim": "#5c6370",
+    "borderDivider": "#232733",
+    "focusRing": "#f3f4f6",
+    "accent": "#d97736",
+    "accentHover": "#ea8c4f",
+    "badgeMovieBg": "#1e3a5f",
+    "badgeMovieFg": "#60a5fa",
+    "badgeEpisodeBg": "#1e293b",
+    "badgeEpisodeFg": "#93c5fd"
+  },
+  "typography": {
+    "fontFamily": "Inter",
+    "monoFontFamily": "monospace"
+  },
+  "geometry": {
+    "radiusSmall": 4,
+    "radiusMedium": 6,
+    "borderWidth": 1
+  },
+  "motion": {
+    "fastDuration": 100,
+    "panelDuration": 180,
+    "viewDuration": 220,
+    "reducedMotion": false
+  }
+}
